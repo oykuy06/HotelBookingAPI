@@ -1,5 +1,7 @@
-﻿using HotelBookingAPI.Data;
-using HotelBookingAPI.Dto;
+﻿using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity;
+using HotelBookingAPI.Entity.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +11,9 @@ namespace HotelBookingAPI.Controllers
     [Route("api/[Controller]")]
     public class HotelController : ControllerBase
     {
-        private readonly HotelBookingContext _context;
+        private readonly HotelBookingDBContext _context;
 
-        public HotelController(HotelBookingContext context)
+        public HotelController(HotelBookingDBContext context)
         {
             _context = context;
         }
@@ -39,17 +41,6 @@ namespace HotelBookingAPI.Controllers
                 Description = hotel.Description,
                 Address = hotel.Address,
                 Photo = hotel.Photo,
-                Rooms = hotel.Rooms.Select(r => new RoomResponseDto
-                {
-                    Id = r.Id,
-                    Name = r.Name,
-                    HotelId = r.HotelId,
-                    RoomNumber = r.RoomNumber,
-                    Capacity = r.Capacity,
-                    Price = r.Price,
-                    Description = r.Description,
-                    Photo = r.Photo
-                }).ToList()
             };
 
             return Ok(hotelDto);

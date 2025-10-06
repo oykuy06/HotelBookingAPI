@@ -1,5 +1,5 @@
-﻿using HotelBookingAPI.Data;
-using HotelBookingAPI.Dto;
+﻿using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Entity;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,9 +12,9 @@ namespace HotelBookingAPI.Controllers
     [Route("api/[Controller]")]
     public class UserController : ControllerBase
     {
-        private readonly HotelBookingContext _context;
+        private readonly HotelBookingDBContext _context;
 
-        public UserController(HotelBookingContext context)
+        public UserController(HotelBookingDBContext context)
         {
             _context = context;
         }

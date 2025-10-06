@@ -1,8 +1,10 @@
-﻿using HotelBookingAPI.Data;
-using HotelBookingAPI.Dto;
+﻿using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Entity;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HotelBookingAPI.Entity.Models;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -12,9 +14,9 @@ namespace HotelBookingAPI.Controllers
     [Authorize]
     public class ReservationController : ControllerBase
     {
-        public readonly HotelBookingContext _context;
+        public readonly HotelBookingDBContext _context;
 
-        public ReservationController(HotelBookingContext context)
+        public ReservationController(HotelBookingDBContext context)
         {
             _context = context;
         }

@@ -1,7 +1,9 @@
-﻿using HotelBookingAPI.Data;
-using HotelBookingAPI.Dto;
+﻿using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Entity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using HotelBookingAPI.Dto.ResponseDto;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -9,9 +11,9 @@ namespace HotelBookingAPI.Controllers
     [Route("api/[Controller]")]
     public class RoomController : ControllerBase
     {
-        private readonly HotelBookingContext _context;
+        private readonly HotelBookingDBContext _context;
 
-        public RoomController(HotelBookingContext context)
+        public RoomController(HotelBookingDBContext context)
         {
             _context = context;
         }
@@ -23,7 +25,7 @@ namespace HotelBookingAPI.Controllers
                 .Include(r => r.Hotel)
                 .Select(r => new RoomResponseDto
                 {
-                    Id = r.Id,
+                    Id = (int)r.Id,
                     Name = r.Name,
                     HotelId = r.HotelId,
                     HotelName = r.Hotel.Name,
@@ -49,7 +51,7 @@ namespace HotelBookingAPI.Controllers
 
             var response = new RoomResponseDto
             {
-                Id = room.Id,
+                Id = (int)room.Id,
                 Name = room.Name,
                 HotelId = room.HotelId,
                 HotelName = room.Hotel.Name,

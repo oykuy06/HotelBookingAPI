@@ -1,5 +1,6 @@
-﻿using HotelBookingAPI.Data;
-using HotelBookingAPI.Dto;
+﻿using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using HotelBookingAPI.Services.Interfaces;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -14,11 +16,11 @@ namespace HotelBookingAPI.Controllers
     [Route("api/[Controller]")]
     public class AuthController : ControllerBase
     {
-        private readonly HotelBookingContext _context;
+        private readonly HotelBookingDBContext _context;
         private readonly IConfiguration _configuration;
         private readonly PasswordService _passwordService;
 
-    public AuthController(HotelBookingContext context, IConfiguration configuration, PasswordService passwordService)
+    public AuthController(HotelBookingDBContext context, IConfiguration configuration, PasswordService passwordService)
         {
             _context = context;
             _configuration = configuration;
@@ -31,9 +33,9 @@ namespace HotelBookingAPI.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null) return NotFound(new { message = "User not found"});
 
-            var token = await _passwordService.GenerateResetToken(user.Id);
+            var token = await _passwordService.GenerateResetTokenAsync((int)user.Id);
 
-            await _passwordService.SendResetEmail(user.Email, token);
+            await _passwordService.SendResetEmailAsync(user.Email, token);
 
             return Ok(new { message = "Reset link sent to email" });
         }
@@ -41,7 +43,7 @@ namespace HotelBookingAPI.Controllers
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
-            var user = await _passwordService.ValidateUserToken(dto.Token);
+            var user = await _passwordService.ValidateUserTokenAsync(dto.Token);
             if (user == null) return BadRequest(new { message = "Invalid or expired token" });
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
