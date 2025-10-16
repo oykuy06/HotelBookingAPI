@@ -2,9 +2,9 @@
 {
     public class RoomResponseDto
     {
-        public int Id { get; set; }
+        public long Id { get; set; }
         public string Name { get; set; }
-        public int HotelId { get; set; }
+        public long HotelId { get; set; }
         public string HotelName { get; set; }
         public int RoomNumber { get; set; }
         public int Capacity { get; set; }

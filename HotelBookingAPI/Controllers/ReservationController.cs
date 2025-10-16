@@ -1,144 +1,134 @@
-﻿using HotelBookingAPI.Dto.ResponseDto;
-using HotelBookingAPI.Dto.RequestDto;
-using HotelBookingAPI.Entity;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HotelBookingAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
-
-    [Authorize]
+    [Route("api/[controller]")]
     public class ReservationController : ControllerBase
     {
-        public readonly HotelBookingDBContext _context;
+        private readonly IReservationService _reservationService;
 
-        public ReservationController(HotelBookingDBContext context)
+        public ReservationController(IReservationService reservationService)
         {
-            _context = context;
+            _reservationService = reservationService;
         }
 
-        [HttpGet("all")] //admin sees all reservations
-        [Authorize(Roles = "Admin")]
-
+        [HttpGet]
         public async Task<IActionResult> GetAllReservations()
         {
-            var reservations = await _context.Reservations
-                .Include(r => r.User)
-                .Include(r => r.Room)
-                .ThenInclude(room => room.Hotel)
-                .Select(r => new ReservationResponseDto
-                {
-                    Id = r.Id,
-                    RoomId = r.Room.Id,
-                    RoomName = r.Room.Name,
-                    HotelName = r.Room.Hotel.Name,
-                    UserId = r.UserId,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                })
-                .ToListAsync();
+            var reservations = await _reservationService.GetAllReservationsAsync();
 
-            return Ok(reservations);
-        }
-
-        [HttpGet("me")] //User sees their own reservations
-        public async Task<IActionResult> GetUserReservations()
-        {
-            var userId = int.Parse(User.Identity.Name);
-            var reservations = await _context.Reservations
-                .Include(r => r.Room)
-                .ThenInclude(r => r.Hotel)
-                .Where(r => r.UserId == userId)
-                .Select(r => new ReservationResponseDto
-                {
-                    Id = r.Id,
-                    RoomId = r.RoomId,
-                    RoomName = r.Room.Name,
-                    HotelName = r.Room.Hotel.Name,
-                    StartDate = r.StartDate,
-                    EndDate = r.EndDate,
-                })
-
-                .ToListAsync();
-
-            return Ok(reservations);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetReservation(int id)
-        {
-            var reservation = await _context.Reservations
-                .Include(r => r.User)
-                .Include(r => r.Room)
-                .ThenInclude(room => room.Hotel)
-                .FirstOrDefaultAsync(r => r.Id == id);
-
-            if (reservation == null) return NotFound();
-
-            if (!User.IsInRole("Admin") && reservation.UserId != int.Parse(User.Identity.Name))
-                return Forbid();
-
-            var response = new ReservationResponseDto
+            var response = reservations.Select(r => new ReservationResponseDto
             {
-                Id = reservation.Id,
-                RoomId = reservation.RoomId,
-                RoomName = reservation.Room.Name,
-                HotelName = reservation.Room.Hotel.Name,
-                UserId = reservation.User.Id,
-                StartDate = reservation.StartDate,
-                EndDate = reservation.EndDate,
-            };
+                Id = r.Id,
+                UserId = r.UserId,
+                UserName = r.User?.Username,
+                RoomId = r.RoomId,
+                RoomName = r.Room?.Name,
+                CheckInDate = r.CheckInDate,
+                CheckOutDate = r.CheckOutDate,
+                TotalPrice = r.TotalPrice,
+                Status = r.Status
+            });
 
             return Ok(response);
+        }
+
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetReservationById(long id)
+        {
+            var reservation = await _reservationService.GetReservationByIdAsync(id);
+            if (reservation == null)
+                return NotFound(new { message = "Reservation not found" });
+
+            var dto = new ReservationResponseDto
+            {
+                Id = reservation.Id,
+                UserId = reservation.UserId,
+                UserName = reservation.User?.Username,
+                RoomId = reservation.RoomId,
+                RoomName = reservation.Room?.Name,
+                CheckInDate = reservation.CheckInDate,
+                CheckOutDate = reservation.CheckOutDate,
+                TotalPrice = reservation.TotalPrice,
+                Status = reservation.Status
+            };
+
+            return Ok(dto);
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateReservations([FromBody] ReservationDto dto)
+        public async Task<IActionResult> CreateReservation([FromBody] ReservationDto dto)
         {
-            if (dto.StartDate >= dto.EndDate)
-                return BadRequest("StartDate must be before EndDate");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var room = await _context.Rooms.FindAsync(dto.RoomId);
-            if (room == null) return NotFound("Room not found");
-
-            var user = await _context.Users.FindAsync(dto.UserId);
-            if (user == null) return NotFound("User Not Found");
-
-            bool isOverlapping = await _context.Reservations
-                .AnyAsync(r => r.RoomId == room.Id &&
-                        r.EndDate > dto.StartDate &&
-                        r.StartDate < dto.EndDate);
-            if (isOverlapping)
-                return BadRequest("This room is already booked for the selected dates");
+            if (dto.CheckInDate >= dto.CheckOutDate)
+                return BadRequest(new { message = "Check-in date must be before check-out date." });
 
             var reservation = new Reservation
             {
+                RoomId = dto.RoomId,
                 UserId = dto.UserId,
-                RoomId = room.Id,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
+                CheckInDate = dto.CheckInDate,
+                CheckOutDate = dto.CheckOutDate,
+                TotalPrice = dto.TotalPrice,
+                Status = dto.Status
             };
 
-            _context.Reservations.Add(reservation);
-            await _context.SaveChangesAsync();
+            var created = await _reservationService.CreateReservationAsync(reservation);
 
-            var response = new ReservationResponseDto
+            var responseDto = new ReservationResponseDto
             {
-                Id = reservation.Id,
-                RoomId = reservation.RoomId,
-                RoomName = room.Name,
-                HotelName = reservation.Room.Hotel.Name,
-                UserId = reservation.UserId,
-                StartDate = reservation.StartDate,
-                EndDate = reservation.EndDate,
+                Id = created.Id,
+                UserId = created.UserId,
+                UserName = created.User?.Username ?? "",
+                RoomId = created.RoomId,
+                RoomName = created.Room?.Name ?? "",
+                CheckInDate = created.CheckInDate,
+                CheckOutDate = created.CheckOutDate,
+                TotalPrice = created.TotalPrice,
+                Status = created.Status
             };
 
-            return Ok(response);
+            return CreatedAtAction(nameof(GetReservationById), new { id = created.Id }, responseDto);
+        }
+
+
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> UpdateReservation(long id, [FromBody] ReservationDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var updated = await _reservationService.UpdateReservationAsync(id, new Reservation
+            {
+                RoomId = dto.RoomId,
+                UserId = dto.UserId,
+                CheckInDate = dto.CheckInDate,
+                CheckOutDate = dto.CheckOutDate,
+                TotalPrice = dto.TotalPrice,
+                Status = dto.Status
+            });
+
+            if (updated == null)
+                return NotFound(new { message = "Reservation not found" });
+
+            return Ok(new { message = "Reservation updated successfully" });
+        }
+
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> DeleteReservation(long id)
+        {
+            var success = await _reservationService.DeleteReservationAsync(id);
+            if (!success)
+                return NotFound(new { message = "Reservation not found" });
+
+            return Ok(new { message = "Reservation deleted successfully" });
         }
     }
 }
-           

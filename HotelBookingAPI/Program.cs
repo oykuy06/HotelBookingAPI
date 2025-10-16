@@ -1,4 +1,6 @@
 using HotelBookingAPI.Entity;
+using HotelBookingAPI.Services;
+using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -16,8 +18,7 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod());
 });
 
-
-//jwt 
+// JWT
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 builder.Services.AddAuthentication(options =>
 {
@@ -39,14 +40,18 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
-
 builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// DbContext
 builder.Services.AddDbContext<HotelBookingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+// --- PASSWORD SERVICE EKLENDÝ ---
+builder.Services.AddScoped<IPasswordService, PasswordService>();
 
 var app = builder.Build();
 
@@ -59,11 +64,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 
 app.Run();
-
-

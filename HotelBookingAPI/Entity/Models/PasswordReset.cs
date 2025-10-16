@@ -5,6 +5,7 @@ namespace HotelBookingAPI.Entity.Models
     public class PasswordReset : BaseEntity
     {
         public long Id { get; set; }
+        [Required]
         public long UserId { get; set; }
         public User User { get; set; }
 

@@ -1,15 +1,25 @@
-﻿using HotelBookingAPI.Dto.RequestDto;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace HotelBookingAPI.Dto.RequestDto
 {
     public class ReservationDto
     {
         [Required]
-        public int UserId { get; set; }
+        public long UserId { get; set; }
+
         [Required]
-        public int RoomId { get; set; }
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        public long RoomId { get; set; }
+
+        [Required]
+        public DateTime CheckInDate { get; set; }
+
+        [Required]
+        public DateTime CheckOutDate { get; set; }
+
+        [Range(0, double.MaxValue)]
+        public decimal TotalPrice { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Pending";
     }
 }

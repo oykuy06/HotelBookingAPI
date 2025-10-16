@@ -1,54 +1,94 @@
 ﻿using HotelBookingAPI.Dto.RequestDto;
-using HotelBookingAPI.Entity;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Identity;
+using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Org.BouncyCastle.Crypto.Generators;
 
 namespace HotelBookingAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
+    [Route("api/[controller]")]
     public class UserController : ControllerBase
     {
-        private readonly HotelBookingDBContext _context;
+        private readonly IUserService _userService;
 
-        public UserController(HotelBookingDBContext context)
+        public UserController(IUserService userService)
         {
-            _context = context;
+            _userService = userService;
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetUser (int id)
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetUser(long id)
         {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-                return NotFound();
-            return Ok(user);
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] RegisterUserDto dto)
-        {
-            var user = await _context.Users.FindAsync(id);
+            var user = await _userService.GetUserByIdAsync(id);
             if (user == null) return NotFound();
-            user.Email = dto.Email;
-            if (!string.IsNullOrEmpty(dto.Password))
-                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
-            await _context.SaveChangesAsync();
-            return Ok(user);
+
+            var dto = new UserResponseDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Role = user.Role
+            };
+
+            return Ok(dto);
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        [HttpGet]
+        public async Task<IActionResult> GetAllUsers()
         {
-            var user = await _context.Users.FindAsync(id);
+            var users = await _userService.GetAllUsersAsync();
+            var dtoList = users.Select(u => new UserResponseDto
+            {
+                Id = u.Id,
+                Email = u.Email,
+                Role = u.Role
+            });
+
+            return Ok(dtoList);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateUser([FromBody] UserDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await _userService.CreateUserAsync(dto.Email, dto.Password, dto.Role);
+
+            var response = new UserResponseDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Role = user.Role
+            };
+
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, response);
+        }
+
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> UpdateUser(long id, [FromBody] UserDto dto)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var user = await _userService.UpdateUserAsync(id, dto.Email, dto.Password, dto.Role);
             if (user == null) return NotFound();
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Deleted user"});
+
+            var response = new UserResponseDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                Role = user.Role
+            };
+
+            return Ok(response);
+        }
+
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> DeleteUser(long id)
+        {
+            var success = await _userService.DeleteUserAsync(id);
+            if (!success) return NotFound();
+
+            return Ok(new { message = "Deleted user" });
         }
     }
 }
-

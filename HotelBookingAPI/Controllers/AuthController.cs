@@ -1,61 +1,61 @@
 ﻿using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Entity;
-using HotelBookingAPI.Services;
+using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using HotelBookingAPI.Services.Interfaces;
 
 namespace HotelBookingAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
+    [Route("api/[controller]")]
     public class AuthController : ControllerBase
     {
         private readonly HotelBookingDBContext _context;
         private readonly IConfiguration _configuration;
-        private readonly PasswordService _passwordService;
+        private readonly IPasswordService _passwordService;
 
-    public AuthController(HotelBookingDBContext context, IConfiguration configuration, PasswordService passwordService)
+        public AuthController(HotelBookingDBContext context, IConfiguration configuration, IPasswordService passwordService)
         {
             _context = context;
             _configuration = configuration;
             _passwordService = passwordService;
         }
 
-        [HttpPost("forgot-password")]
-        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] UserDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            if (user == null) return NotFound(new { message = "User not found"});
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var token = await _passwordService.GenerateResetTokenAsync((int)user.Id);
+            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+                return BadRequest(new { message = "Email already registered" });
 
-            await _passwordService.SendResetEmailAsync(user.Email, token);
+            var user = new User
+            {
+                Email = dto.Email,
+                Username = dto.Email.Split('@')[0],
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                Role = dto.Role
+            };
 
-            return Ok(new { message = "Reset link sent to email" });
-        }
-
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
-        {
-            var user = await _passwordService.ValidateUserTokenAsync(dto.Token);
-            if (user == null) return BadRequest(new { message = "Invalid or expired token" });
-
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Password has been reset successfully" });
+            return Ok(new { message = "User created successfully", user.Id });
         }
 
         [HttpPost("login")]
-        public IActionResult Login([FromBody] LoginDto dto)
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var user = _context.Users.FirstOrDefault(u => u.Email == dto.Email);
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
                 return Unauthorized(new { message = "Invalid credentials" });
 
@@ -66,10 +66,9 @@ namespace HotelBookingAPI.Controllers
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim(ClaimTypes.Name, user.Id.ToString()),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
-
                 Expires = DateTime.UtcNow.AddHours(2),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
@@ -80,23 +79,36 @@ namespace HotelBookingAPI.Controllers
             return Ok(new { token = tokenHandler.WriteToken(token) });
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] RegisterUserDto dto)
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-                return BadRequest("Email already registered");
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            var user = new User
-            {
-                Email = dto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = "User"
-            };
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+            if (user == null)
+                return NotFound(new { message = "User not found" });
 
-            _context.Users.Add(user);
+            var token = await _passwordService.GenerateResetTokenAsync(user.Id);
+            await _passwordService.SendResetEmailAsync(user.Email, token);
+
+            return Ok(new { message = "Reset link sent to email" });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var user = await _passwordService.ValidateUserTokenAsync(dto.Token);
+            if (user == null)
+                return BadRequest(new { message = "Invalid or expired token" });
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Created a new user", user.Id });
+
+            return Ok(new { message = "Password has been reset successfully" });
         }
     }
 }
-        

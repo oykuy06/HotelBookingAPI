@@ -1,60 +1,55 @@
-﻿using HotelBookingAPI.Entity.Models;
-using HotelBookingAPI.Dto.RequestDto;
-using HotelBookingAPI.Entity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 
 namespace HotelBookingAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
+    [Route("api/[controller]")]
     public class RoomController : ControllerBase
     {
-        private readonly HotelBookingDBContext _context;
+        private readonly IRoomService _roomService;
 
-        public RoomController(HotelBookingDBContext context)
+        public RoomController(IRoomService roomService)
         {
-            _context = context;
+            _roomService = roomService;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllRooms()
         {
-            var rooms = await _context.Rooms
-                .Include(r => r.Hotel)
-                .Select(r => new RoomResponseDto
-                {
-                    Id = (int)r.Id,
-                    Name = r.Name,
-                    HotelId = r.HotelId,
-                    HotelName = r.Hotel.Name,
-                    RoomNumber = r.RoomNumber,
-                    Capacity = r.Capacity,
-                    Price = r.Price,
-                    Description = r.Description,
-                    Photo = r.Photo
-                })
-                .ToListAsync();
+            var rooms = await _roomService.GetAllRoomsAsync();
+            var roomDtos = rooms.Select(r => new RoomResponseDto
+            {
+                Id = r.Id,
+                Name = r.Name,
+                HotelId = r.HotelId,
+                HotelName = r.Hotel?.Name ?? "",
+                RoomNumber = r.RoomNumber,
+                Capacity = r.Capacity,
+                Price = r.Price,
+                Description = r.Description,
+                Photo = r.Photo
+            });
 
-            return Ok(rooms);
+            return Ok(roomDtos);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetRoom(int id)
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetRoomById(long id)
         {
-            var room = await _context.Rooms
-                .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(r => r.Id == id);
+            var room = await _roomService.GetRoomByIdAsync(id);
+            if (room == null)
+                return NotFound(new { message = "Room not found" });
 
-            if (room == null) return NotFound();
-
-            var response = new RoomResponseDto
+            var roomDto = new RoomResponseDto
             {
-                Id = (int)room.Id,
+                Id = room.Id,
                 Name = room.Name,
                 HotelId = room.HotelId,
-                HotelName = room.Hotel.Name,
+                HotelName = room.Hotel?.Name ?? "",
                 RoomNumber = room.RoomNumber,
                 Capacity = room.Capacity,
                 Price = room.Price,
@@ -62,12 +57,15 @@ namespace HotelBookingAPI.Controllers
                 Photo = room.Photo
             };
 
-            return Ok(response);
+            return Ok(roomDto);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateRoom([FromBody] RoomDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var room = new Room
             {
                 Name = dto.Name,
@@ -79,41 +77,55 @@ namespace HotelBookingAPI.Controllers
                 Photo = dto.Photo
             };
 
-            _context.Rooms.Add(room);
-            await _context.SaveChangesAsync();
+            var createdRoom = await _roomService.CreateRoomAsync(room);
 
-            return Ok(new { message = "Created a new room", room.Id });
+            var responseDto = new RoomResponseDto
+            {
+                Id = createdRoom.Id,
+                Name = createdRoom.Name,
+                HotelId = createdRoom.HotelId,
+                HotelName = createdRoom.Hotel?.Name ?? "",
+                RoomNumber = createdRoom.RoomNumber,
+                Capacity = createdRoom.Capacity,
+                Price = createdRoom.Price,
+                Description = createdRoom.Description,
+                Photo = createdRoom.Photo
+            };
+
+            return CreatedAtAction(nameof(GetRoomById), new { id = createdRoom.Id }, responseDto);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateRoom(int id, [FromBody] RoomDto dto)
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> UpdateRoom(long id, [FromBody] RoomDto dto)
         {
-            var room = await _context.Rooms.FindAsync(id);
-            if (room == null) return NotFound();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            room.Name = dto.Name;
-            room.HotelId = dto.HotelId;
-            room.RoomNumber = dto.RoomNumber;
-            room.Capacity = dto.Capacity;
-            room.Price = dto.Price;
-            room.Description = dto.Description;
-            room.Photo = dto.Photo;
+            var updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
+            {
+                Name = dto.Name,
+                HotelId = dto.HotelId,
+                RoomNumber = dto.RoomNumber,
+                Capacity = dto.Capacity,
+                Price = dto.Price,
+                Description = dto.Description,
+                Photo = dto.Photo
+            });
 
-            await _context.SaveChangesAsync();
-            return Ok(room);
+            if (updatedRoom == null)
+                return NotFound(new { message = "Room not found" });
+
+            return Ok(new { message = "Room updated successfully" });
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteRoom(int id)
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> DeleteRoom(long id)
         {
-            var room = await _context.Rooms.FindAsync(id);
-            if (room == null) return NotFound();
+            var success = await _roomService.DeleteRoomAsync(id);
+            if (!success)
+                return NotFound(new { message = "Room not found" });
 
-            _context.Rooms.Remove(room);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Deleted room" });
+            return Ok(new { message = "Room deleted successfully" });
         }
     }
-
 }
-

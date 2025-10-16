@@ -1,93 +1,108 @@
 ﻿using HotelBookingAPI.Dto.RequestDto;
-using HotelBookingAPI.Dto.ResponseDto;
-using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace HotelBookingAPI.Controllers
 {
     [ApiController]
-    [Route("api/[Controller]")]
+    [Route("api/[controller]")]
     public class HotelController : ControllerBase
     {
-        private readonly HotelBookingDBContext _context;
+        private readonly IHotelService _hotelService;
 
-        public HotelController(HotelBookingDBContext context)
+        public HotelController(IHotelService hotelService)
         {
-            _context = context;
+            _hotelService = hotelService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllHotel()
+        public async Task<IActionResult> GetAllHotels()
         {
-            var hotels = await _context.Hotels.ToListAsync();
-            return Ok(hotels);
+            var hotels = await _hotelService.GetAllHotelsAsync();
+            var hotelDtos = hotels.Select(h => new HotelDto
+            {
+                Name = h.Name,
+                Description = h.Description,
+                Address = h.Address,
+                Photo = h.Photo
+            });
+
+            return Ok(hotelDtos);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetHotel(int id)
+        [HttpGet("{id:long}")]
+        public async Task<IActionResult> GetHotelById(long id)
         {
-            var hotel = await _context.Hotels
-                .Include(h => h.Rooms)
-                .FirstOrDefaultAsync(h => h.Id == id);
-
+            var hotel = await _hotelService.GetHotelByIdAsync(id);
             if (hotel == null)
-                return NotFound();
+                return NotFound(new { message = "Hotel not found" });
 
-            var hotelDto = new HotelDto
+            var dto = new HotelDto
             {
                 Name = hotel.Name,
                 Description = hotel.Description,
                 Address = hotel.Address,
-                Photo = hotel.Photo,
+                Photo = hotel.Photo
             };
 
-            return Ok(hotelDto);
+            return Ok(dto);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateHotel([FromBody] HotelDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var hotel = new Hotel
             {
                 Name = dto.Name,
                 Description = dto.Description,
                 Address = dto.Address,
-                Photo = dto.Photo,
-                Rooms = new List<Room>()
+                Photo = dto.Photo
             };
 
-            _context.Hotels.Add(hotel);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Created a new hotel"});
+            var createdHotel = await _hotelService.CreateHotelAsync(hotel);
+            var responseDto = new HotelDto
+            {
+                Name = createdHotel.Name,
+                Description = createdHotel.Description,
+                Address = createdHotel.Address,
+                Photo = createdHotel.Photo
+            };
+
+            return CreatedAtAction(nameof(GetHotelById), new { id = createdHotel.Id }, responseDto);
         }
 
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateHotel(int id, [FromBody] HotelDto dto)
+        [HttpPut("{id:long}")]
+        public async Task<IActionResult> UpdateHotel(long id, [FromBody] HotelDto dto)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
-            if(hotel == null) return NotFound();
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
 
-            hotel.Name = dto.Name;
-            hotel.Description = dto.Description;
-            hotel.Address = dto.Address;
-            hotel.Photo = dto.Photo;
+            var updatedHotel = await _hotelService.UpdateHotelAsync(id, new Hotel
+            {
+                Name = dto.Name,
+                Description = dto.Description,
+                Address = dto.Address,
+                Photo = dto.Photo
+            });
 
-            await _context.SaveChangesAsync();
-            return Ok(hotel);
+            if (updatedHotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            return Ok(new { message = "Hotel updated successfully" });
         }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteHotel(int id)
+        [HttpDelete("{id:long}")]
+        public async Task<IActionResult> DeleteHotel(long id)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
-            if(hotel == null) return NotFound();
+            var success = await _hotelService.DeleteHotelAsync(id);
+            if (!success)
+                return NotFound(new { message = "Hotel not found" });
 
-            _context.Hotels.Remove(hotel);
-            await _context.SaveChangesAsync();
-            return Ok(new { message = "Deleted hotel" });
+            return Ok(new { message = "Hotel deleted successfully" });
         }
     }
 }
-      
