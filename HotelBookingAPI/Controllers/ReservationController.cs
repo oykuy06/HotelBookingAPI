@@ -2,6 +2,7 @@
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HotelBookingAPI.Controllers
@@ -18,6 +19,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAllReservations()
         {
             var reservations = await _reservationService.GetAllReservationsAsync();
@@ -39,6 +41,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpGet("{id:long}")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> GetReservationById(long id)
         {
             var reservation = await _reservationService.GetReservationByIdAsync(id);
@@ -62,6 +65,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> CreateReservation([FromBody] ReservationDto dto)
         {
             if (!ModelState.IsValid)
@@ -98,7 +102,6 @@ namespace HotelBookingAPI.Controllers
             return CreatedAtAction(nameof(GetReservationById), new { id = created.Id }, responseDto);
         }
 
-
         [HttpPut("{id:long}")]
         public async Task<IActionResult> UpdateReservation(long id, [FromBody] ReservationDto dto)
         {
@@ -122,6 +125,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> DeleteReservation(long id)
         {
             var success = await _reservationService.DeleteReservationAsync(id);

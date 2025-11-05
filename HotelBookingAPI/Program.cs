@@ -9,18 +9,22 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add CORS
+// CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReactApp",
-        policy => policy
-            .WithOrigins("http://localhost:3000", "http://localhost:3001")
-            .AllowAnyHeader()
-            .AllowAnyMethod());
+    options.AddPolicy("AllowReactApp", policy =>
+        policy.WithOrigins("http://localhost:3000", "http://localhost:3001")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
 });
 
-// JWT
+// JWT Settings
 var jwtSettings = builder.Configuration.GetSection("Jwt");
+var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
+             ?? throw new Exception("JWT_KEY environment variable not set.");
+
+var expiresInHours = jwtSettings.GetValue<int>("ExpiresInHours", 2);
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -36,7 +40,7 @@ builder.Services.AddAuthentication(options =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["Key"]))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
     };
 });
 
@@ -51,7 +55,6 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<HotelBookingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -63,7 +66,6 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionMiddleware>();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -77,5 +79,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-
 app.Run();

@@ -2,6 +2,7 @@
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using MailKit.Net.Smtp;
+using MailKit.Security;
 using Microsoft.EntityFrameworkCore;
 using MimeKit;
 
@@ -60,7 +61,6 @@ namespace HotelBookingAPI.Services
 
         public async Task SendResetEmailAsync(string email, string token)
         {
-            // SMTP bilgilerini appsettings.json'dan çekiyoruz
             var smtpHost = _config["Smtp:Host"];
             var smtpPort = int.Parse(_config["Smtp:Port"]);
             var smtpUser = _config["Smtp:Username"];
@@ -81,7 +81,8 @@ namespace HotelBookingAPI.Services
 
             using (var client = new SmtpClient())
             {
-                await client.ConnectAsync(smtpHost, smtpPort, false);
+                // Security Connection (SSL/TLS)
+                await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
                 await client.AuthenticateAsync(smtpUser, smtpPass);
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);

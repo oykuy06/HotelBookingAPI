@@ -1,5 +1,6 @@
 ﻿using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HotelBookingAPI.Controllers
@@ -16,6 +17,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost("register")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] UserDto dto)
         {
             var user = await _authService.RegisterAsync(dto);
@@ -26,6 +28,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost("login")]
+        [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
             var token = await _authService.LoginAsync(dto);
@@ -35,6 +38,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost("forgot-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             var token = await _authService.ForgotPasswordAsync(dto.Email);
@@ -44,12 +48,25 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost("reset-password")]
+        [AllowAnonymous]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
         {
             var success = await _authService.ResetPasswordAsync(dto.Token, dto.NewPassword);
             if (!success) return BadRequest(new { message = "Invalid or expired token" });
 
             return Ok(new { message = "Password has been reset successfully" });
+        }
+
+        [HttpPost("refresh-token")]
+        [AllowAnonymous]
+        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        {
+            var newAccessToken = await _authService.RefreshAccessTokenAsync(refreshToken);
+
+            if (newAccessToken == null)
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+
+            return Ok(new { accessToken = newAccessToken });
         }
     }
 }

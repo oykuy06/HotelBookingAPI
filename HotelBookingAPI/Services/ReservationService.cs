@@ -45,7 +45,6 @@ namespace HotelBookingAPI.Services
             return reservation;
         }
 
-
         public async Task<Reservation?> UpdateReservationAsync(long id, Reservation updatedReservation)
         {
             var existing = await _context.Reservations.FindAsync(id);
@@ -54,7 +53,6 @@ namespace HotelBookingAPI.Services
 
             var userExists = await _context.Users.AnyAsync(u => u.Id == updatedReservation.UserId);
             if (!userExists) throw new ArgumentException("User not found");
-
 
             existing.RoomId = updatedReservation.RoomId;
             existing.UserId = updatedReservation.UserId;

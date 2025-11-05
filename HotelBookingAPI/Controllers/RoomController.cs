@@ -2,6 +2,7 @@
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HotelBookingAPI.Controllers
@@ -18,6 +19,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllRooms()
         {
             var rooms = await _roomService.GetAllRoomsAsync();
@@ -38,6 +40,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpGet("{id:long}")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetRoomById(long id)
         {
             var room = await _roomService.GetRoomByIdAsync(id);
@@ -61,6 +64,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> CreateRoom([FromBody] RoomDto dto)
         {
             if (!ModelState.IsValid)
@@ -68,7 +72,6 @@ namespace HotelBookingAPI.Controllers
 
             if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
                 return BadRequest(new { message = "Photo must be a valid URL." });
-
 
             var room = new Room
             {
@@ -100,6 +103,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPut("{id:long}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateRoom(long id, [FromBody] RoomDto dto)
         {
             if (!ModelState.IsValid)
@@ -107,7 +111,6 @@ namespace HotelBookingAPI.Controllers
 
             if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
                 return BadRequest(new { message = "Photo must be a valid URL." });
-
 
             var updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
             {
@@ -127,6 +130,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteRoom(long id)
         {
             var success = await _roomService.DeleteRoomAsync(id);
