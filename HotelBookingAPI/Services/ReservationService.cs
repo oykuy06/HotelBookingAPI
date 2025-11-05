@@ -32,16 +32,29 @@ namespace HotelBookingAPI.Services
 
         public async Task<Reservation> CreateReservationAsync(Reservation reservation)
         {
+            var userExists = await _context.Users.AnyAsync(u => u.Id == reservation.UserId);
+            if (!userExists)
+                throw new ArgumentException("User not found");
+
+            var roomExists = await _context.Rooms.AnyAsync(r => r.Id == reservation.RoomId);
+            if (!roomExists)
+                throw new ArgumentException("Room not found");
+
             _context.Reservations.Add(reservation);
             await _context.SaveChangesAsync();
             return reservation;
         }
+
 
         public async Task<Reservation?> UpdateReservationAsync(long id, Reservation updatedReservation)
         {
             var existing = await _context.Reservations.FindAsync(id);
             if (existing == null)
                 return null;
+
+            var userExists = await _context.Users.AnyAsync(u => u.Id == updatedReservation.UserId);
+            if (!userExists) throw new ArgumentException("User not found");
+
 
             existing.RoomId = updatedReservation.RoomId;
             existing.UserId = updatedReservation.UserId;

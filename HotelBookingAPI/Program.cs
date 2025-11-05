@@ -1,4 +1,5 @@
 using HotelBookingAPI.Entity;
+using HotelBookingAPI.Middlewares;
 using HotelBookingAPI.Services;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -50,10 +51,17 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<HotelBookingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// --- PASSWORD SERVICE EKLENDÝ ---
+
 builder.Services.AddScoped<IPasswordService, PasswordService>();
+builder.Services.AddScoped<IHotelService, HotelService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
 
 var app = builder.Build();
+
+app.UseMiddleware<ExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

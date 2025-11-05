@@ -30,6 +30,9 @@ namespace HotelBookingAPI.Services
 
         public async Task<Room> CreateRoomAsync(Room room)
         {
+            if (!string.IsNullOrEmpty(room.Photo) && !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+                throw new ArgumentException("Photo must be a valid URL.");
+
             _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
             return room;
@@ -40,6 +43,13 @@ namespace HotelBookingAPI.Services
             var existingRoom = await _context.Rooms.FindAsync(id);
             if (existingRoom == null)
                 return null;
+
+            var hotelExists = await _context.Hotels.AnyAsync(h => h.Id == room.HotelId);
+            if (!hotelExists)
+                throw new Exception("Hotel not found");
+
+            if (!string.IsNullOrEmpty(room.Photo) && !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+                throw new ArgumentException("Photo must be a valid URL.");
 
             existingRoom.Name = room.Name;
             existingRoom.HotelId = room.HotelId;

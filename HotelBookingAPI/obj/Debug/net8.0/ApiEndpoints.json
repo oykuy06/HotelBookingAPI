@@ -41,7 +41,7 @@
     "Parameters": [
       {
         "Name": "dto",
-        "Type": "HotelBookingAPI.Dto.RequestDto.RegisterUserDto",
+        "Type": "HotelBookingAPI.Dto.RequestDto.UserDto",
         "IsRequired": true
       }
     ],
@@ -65,7 +65,7 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.HotelController",
-    "Method": "GetAllHotel",
+    "Method": "GetAllHotels",
     "RelativePath": "api/Hotel",
     "HttpMethod": "GET",
     "IsController": true,
@@ -91,7 +91,7 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.HotelController",
-    "Method": "GetHotel",
+    "Method": "GetHotelById",
     "RelativePath": "api/Hotel/{id}",
     "HttpMethod": "GET",
     "IsController": true,
@@ -99,7 +99,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],
@@ -115,7 +115,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       },
       {
@@ -136,7 +136,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],
@@ -144,7 +144,17 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.ReservationController",
-    "Method": "CreateReservations",
+    "Method": "GetAllReservations",
+    "RelativePath": "api/Reservation",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "HotelBookingAPI.Controllers.ReservationController",
+    "Method": "CreateReservation",
     "RelativePath": "api/Reservation",
     "HttpMethod": "POST",
     "IsController": true,
@@ -160,7 +170,7 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.ReservationController",
-    "Method": "GetReservation",
+    "Method": "GetReservationById",
     "RelativePath": "api/Reservation/{id}",
     "HttpMethod": "GET",
     "IsController": true,
@@ -168,7 +178,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],
@@ -176,22 +186,39 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.ReservationController",
-    "Method": "GetAllReservations",
-    "RelativePath": "api/Reservation/all",
-    "HttpMethod": "GET",
+    "Method": "UpdateReservation",
+    "RelativePath": "api/Reservation/{id}",
+    "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int64",
+        "IsRequired": true
+      },
+      {
+        "Name": "dto",
+        "Type": "HotelBookingAPI.Dto.RequestDto.ReservationDto",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.ReservationController",
-    "Method": "GetUserReservations",
-    "RelativePath": "api/Reservation/me",
-    "HttpMethod": "GET",
+    "Method": "DeleteReservation",
+    "RelativePath": "api/Reservation/{id}",
+    "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Name": "id",
+        "Type": "System.Int64",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
@@ -222,7 +249,7 @@
   },
   {
     "ContainingType": "HotelBookingAPI.Controllers.RoomController",
-    "Method": "GetRoom",
+    "Method": "GetRoomById",
     "RelativePath": "api/Room/{id}",
     "HttpMethod": "GET",
     "IsController": true,
@@ -230,7 +257,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],
@@ -246,7 +273,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       },
       {
@@ -267,7 +294,33 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "HotelBookingAPI.Controllers.UserController",
+    "Method": "GetAllUsers",
+    "RelativePath": "api/User",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "HotelBookingAPI.Controllers.UserController",
+    "Method": "CreateUser",
+    "RelativePath": "api/User",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "dto",
+        "Type": "HotelBookingAPI.Dto.RequestDto.UserDto",
         "IsRequired": true
       }
     ],
@@ -283,7 +336,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],
@@ -299,12 +352,12 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       },
       {
         "Name": "dto",
-        "Type": "HotelBookingAPI.Dto.RequestDto.RegisterUserDto",
+        "Type": "HotelBookingAPI.Dto.RequestDto.UserDto",
         "IsRequired": true
       }
     ],
@@ -320,7 +373,7 @@
     "Parameters": [
       {
         "Name": "id",
-        "Type": "System.Int32",
+        "Type": "System.Int64",
         "IsRequired": true
       }
     ],

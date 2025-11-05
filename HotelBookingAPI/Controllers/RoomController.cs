@@ -66,6 +66,10 @@ namespace HotelBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+                return BadRequest(new { message = "Photo must be a valid URL." });
+
+
             var room = new Room
             {
                 Name = dto.Name,
@@ -100,6 +104,10 @@ namespace HotelBookingAPI.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+                return BadRequest(new { message = "Photo must be a valid URL." });
+
 
             var updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
             {

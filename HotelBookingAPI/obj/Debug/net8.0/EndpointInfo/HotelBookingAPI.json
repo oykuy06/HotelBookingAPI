@@ -5,6 +5,68 @@
     "version": "1.0"
   },
   "paths": {
+    "/api/Auth/register": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
     "/api/Auth/forgot-password": {
       "post": {
         "tags": [
@@ -56,68 +118,6 @@
             "application/*+json": {
               "schema": {
                 "$ref": "#/components/schemas/ResetPasswordDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Auth/login": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginDto"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Auth/register": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
-              }
-            },
-            "text/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
-              }
-            },
-            "application/*+json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
               }
             }
           }
@@ -182,7 +182,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -203,7 +203,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -243,54 +243,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Reservation/all": {
-      "get": {
-        "tags": [
-          "Reservation"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Reservation/me": {
-      "get": {
-        "tags": [
-          "Reservation"
-        ],
-        "responses": {
-          "200": {
-            "description": "OK"
-          }
-        }
-      }
-    },
-    "/api/Reservation/{id}": {
-      "get": {
-        "tags": [
-          "Reservation"
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -302,6 +255,16 @@
       }
     },
     "/api/Reservation": {
+      "get": {
+        "tags": [
+          "Reservation"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
       "post": {
         "tags": [
           "Reservation"
@@ -325,6 +288,90 @@
             }
           }
         },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Reservation/{id}": {
+      "get": {
+        "tags": [
+          "Reservation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Reservation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReservationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reservation"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "OK"
@@ -385,7 +432,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -406,7 +453,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -446,7 +493,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -469,7 +516,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -490,7 +537,7 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
@@ -498,17 +545,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
+                "$ref": "#/components/schemas/UserDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
+                "$ref": "#/components/schemas/UserDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterUserDto"
+                "$ref": "#/components/schemas/UserDto"
               }
             }
           }
@@ -530,10 +577,51 @@
             "required": true,
             "schema": {
               "type": "integer",
-              "format": "int32"
+              "format": "int64"
             }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/User": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "User"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserDto"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK"
@@ -559,21 +647,29 @@
         "additionalProperties": false
       },
       "HotelDto": {
+        "required": [
+          "address",
+          "description",
+          "name"
+        ],
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
           },
           "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "photo": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string"
           },
           "address": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string"
+          },
+          "photo": {
             "type": "string",
             "nullable": true
           }
@@ -599,33 +695,10 @@
         },
         "additionalProperties": false
       },
-      "RegisterUserDto": {
-        "required": [
-          "email",
-          "name",
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "maxLength": 50,
-            "minLength": 0,
-            "type": "string"
-          },
-          "email": {
-            "minLength": 1,
-            "type": "string",
-            "format": "email"
-          },
-          "password": {
-            "minLength": 3,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
       "ReservationDto": {
         "required": [
+          "checkInDate",
+          "checkOutDate",
           "roomId",
           "userId"
         ],
@@ -633,32 +706,44 @@
         "properties": {
           "userId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "roomId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
-          "startDate": {
+          "checkInDate": {
             "type": "string",
             "format": "date-time"
           },
-          "endDate": {
+          "checkOutDate": {
             "type": "string",
             "format": "date-time"
+          },
+          "totalPrice": {
+            "minimum": 0,
+            "type": "number",
+            "format": "double"
+          },
+          "status": {
+            "maxLength": 20,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
       "ResetPasswordDto": {
         "required": [
-          "newPassword"
+          "newPassword",
+          "token"
         ],
         "type": "object",
         "properties": {
           "token": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "newPassword": {
             "minLength": 3,
@@ -684,14 +769,14 @@
           },
           "hotelId": {
             "type": "integer",
-            "format": "int32"
+            "format": "int64"
           },
           "roomNumber": {
             "type": "integer",
             "format": "int32"
           },
           "capacity": {
-            "maximum": 5,
+            "maximum": 10,
             "minimum": 1,
             "type": "integer",
             "format": "int32"
@@ -707,6 +792,33 @@
             "nullable": true
           },
           "photo": {
+            "type": "string",
+            "format": "uri",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "UserDto": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "minLength": 1,
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "maxLength": 100,
+            "minLength": 6,
+            "type": "string"
+          },
+          "role": {
+            "maxLength": 20,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           }

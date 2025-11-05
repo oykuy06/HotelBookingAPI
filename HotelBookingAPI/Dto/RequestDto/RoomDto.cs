@@ -13,12 +13,13 @@ namespace HotelBookingAPI.Dto.RequestDto
         [Required]
         public int RoomNumber { get; set; }
         [Required]
-        [Range(1, 5)]
+        [Range(1, 10)]
         public int Capacity { get; set; }
         [Required]
         public double Price { get; set; }
         [StringLength(100)]
         public string Description { get; set; }
-        public string Photo { get; set; }
+        [Url]
+        public string? Photo { get; set; }
     }
 }

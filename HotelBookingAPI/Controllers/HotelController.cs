@@ -1,4 +1,5 @@
 ﻿using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -20,12 +21,25 @@ namespace HotelBookingAPI.Controllers
         public async Task<IActionResult> GetAllHotels()
         {
             var hotels = await _hotelService.GetAllHotelsAsync();
-            var hotelDtos = hotels.Select(h => new HotelDto
+            var hotelDtos = hotels.Select(h => new HotelResponseDto
             {
+                Id = h.Id,
                 Name = h.Name,
                 Description = h.Description,
                 Address = h.Address,
-                Photo = h.Photo
+                Photo = h.Photo,
+                Rooms = h.Rooms.Select(r => new RoomResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    HotelId = r.HotelId,
+                    HotelName = h.Name,
+                    RoomNumber = r.RoomNumber,
+                    Capacity = r.Capacity,
+                    Price = r.Price,
+                    Description = r.Description,
+                    Photo = r.Photo
+                }).ToList()
             });
 
             return Ok(hotelDtos);
@@ -38,16 +52,30 @@ namespace HotelBookingAPI.Controllers
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
 
-            var dto = new HotelDto
+            var dto = new HotelResponseDto
             {
+                Id = hotel.Id,
                 Name = hotel.Name,
                 Description = hotel.Description,
                 Address = hotel.Address,
-                Photo = hotel.Photo
+                Photo = hotel.Photo,
+                Rooms = hotel.Rooms.Select(r => new RoomResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    HotelId = r.HotelId,
+                    HotelName = hotel.Name,
+                    RoomNumber = r.RoomNumber,
+                    Capacity = r.Capacity,
+                    Price = r.Price,
+                    Description = r.Description,
+                    Photo = r.Photo
+                }).ToList()
             };
 
             return Ok(dto);
         }
+
 
         [HttpPost]
         public async Task<IActionResult> CreateHotel([FromBody] HotelDto dto)
@@ -64,13 +92,16 @@ namespace HotelBookingAPI.Controllers
             };
 
             var createdHotel = await _hotelService.CreateHotelAsync(hotel);
-            var responseDto = new HotelDto
+            var responseDto = new HotelResponseDto
             {
+                Id = createdHotel.Id,
                 Name = createdHotel.Name,
                 Description = createdHotel.Description,
                 Address = createdHotel.Address,
-                Photo = createdHotel.Photo
+                Photo = createdHotel.Photo,
+                Rooms = new List<RoomResponseDto>()
             };
+
 
             return CreatedAtAction(nameof(GetHotelById), new { id = createdHotel.Id }, responseDto);
         }

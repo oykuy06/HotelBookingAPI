@@ -1,4 +1,6 @@
-﻿namespace HotelBookingAPI.Dto.ResponseDto
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace HotelBookingAPI.Dto.ResponseDto
 {
     public class RoomResponseDto
     {
@@ -10,6 +12,7 @@
         public int Capacity { get; set; }
         public double Price { get; set; }
         public string Description { get; set; }
+        [Url]
         public string? Photo { get; set; }
     }
 }
