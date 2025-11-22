@@ -23,7 +23,7 @@ namespace HotelBookingAPI.Entity.Models
         public double Price { get; set; }
         [Required]
         public long HotelId { get; set; }
-        public Hotel Hotel { get; set; }
-        public List<Reservation> Reservations { get; set; }
+        public virtual Hotel Hotel { get; set; }
+        public virtual List<Reservation> Reservations { get; set; } = new List<Reservation>();
     }
 }

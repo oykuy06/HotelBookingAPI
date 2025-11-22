@@ -7,7 +7,7 @@ namespace HotelBookingAPI.Entity.Models
         public long Id { get; set; }
         [Required]
         public long UserId { get; set; }
-        public User User { get; set; }
+        public virtual User User { get; set; }
 
         [Required]
         [StringLength(100)]

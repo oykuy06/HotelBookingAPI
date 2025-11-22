@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Entity;
+﻿using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,19 +15,61 @@ namespace HotelBookingAPI.Services
             _context = context;
         }
 
-        public async Task<Hotel?> GetHotelByIdAsync(long id)
+        public async Task<HotelResponseDto?> GetHotelByIdAsync(long id)
         {
             return await _context.Hotels
-                .Include(h => h.Rooms)
-                .FirstOrDefaultAsync(h => h.Id == id);
+                .AsNoTracking()
+                .Where(h => h.Id == id)
+                .Select(h => new HotelResponseDto
+                {
+                    Id = h.Id,
+                    Name = h.Name,
+                    Description = h.Description,
+                    Address = h.Address,
+                    Photo = h.Photo,
+                    Rooms = h.Rooms.Select(r => new RoomResponseDto
+                    {
+                        Id = r.Id,
+                        Name = r.Name,
+                        HotelId = h.Id,
+                        HotelName = h.Name,
+                        RoomNumber = r.RoomNumber,
+                        Capacity = r.Capacity,
+                        Price = r.Price,
+                        Description = r.Description,
+                        Photo = r.Photo
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<Hotel>> GetAllHotelsAsync()
+        public async Task<IEnumerable<HotelResponseDto>> GetAllHotelsAsync()
         {
             return await _context.Hotels
-                .Include(h => h.Rooms)
+                .AsNoTracking()
+                .Select(h => new HotelResponseDto
+                {
+                    Id = h.Id,
+                    Name = h.Name,
+                    Description = h.Description,
+                    Address = h.Address,
+                    Photo = h.Photo,
+                    Rooms = h.Rooms.Select(r => new RoomResponseDto
+                    {
+                        Id = r.Id,
+                        Name = r.Name,
+                        HotelId = h.Id,
+                        HotelName = h.Name,
+                        RoomNumber = r.RoomNumber,
+                        Capacity = r.Capacity,
+                        Price = r.Price,
+                        Description = r.Description,
+                        Photo = r.Photo
+                    }).ToList()
+                })
                 .ToListAsync();
         }
+
 
         public async Task<Hotel> CreateHotelAsync(Hotel hotel)
         {

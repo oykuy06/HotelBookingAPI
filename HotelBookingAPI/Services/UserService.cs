@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Entity;
+﻿using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,14 +15,56 @@ namespace HotelBookingAPI.Services
             _context = context;
         }
 
-        public async Task<User?> GetUserByIdAsync(long id)
+        public async Task<UserResponseDto?> GetUserByIdAsync(long id)
         {
-            return await _context.Users.FindAsync(id);
+            return await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == id)
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Role = u.Role,
+                    Reservations = u.Reservations.Select(r => new ReservationResponseDto
+                    {
+                        Id = r.Id,
+                        UserId = r.UserId,
+                        UserName = u.Username,
+                        RoomId = r.RoomId,
+                        RoomName = r.Room.Name,
+                        CheckInDate = r.CheckInDate,
+                        CheckOutDate = r.CheckOutDate,
+                        TotalPrice = (decimal)r.TotalPrice,
+                        Status = r.Status
+                    }).ToList()
+                })
+                .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<User>> GetAllUsersAsync()
+        // Get all users with reservations, return DTOs
+        public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
         {
-            return await _context.Users.ToListAsync();
+            return await _context.Users
+                .AsNoTracking()
+                .Select(u => new UserResponseDto
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Role = u.Role,
+                    Reservations = u.Reservations.Select(r => new ReservationResponseDto
+                    {
+                        Id = r.Id,
+                        UserId = r.UserId,
+                        UserName = u.Username,
+                        RoomId = r.RoomId,
+                        RoomName = r.Room.Name,
+                        CheckInDate = r.CheckInDate,
+                        CheckOutDate = r.CheckOutDate,
+                        TotalPrice = (decimal)r.TotalPrice,
+                        Status = r.Status
+                    }).ToList()
+                })
+                .ToListAsync();
         }
 
         public async Task<User> CreateUserAsync(string email, string password, string role = "User")

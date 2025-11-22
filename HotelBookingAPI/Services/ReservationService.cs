@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Entity;
+﻿using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,20 +15,43 @@ namespace HotelBookingAPI.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<Reservation>> GetAllReservationsAsync()
+        public async Task<IEnumerable<ReservationResponseDto>> GetAllReservationsAsync()
         {
             return await _context.Reservations
-                .Include(r => r.Room)
-                .Include(r => r.User)
+                .AsNoTracking()
+                .Select(r => new ReservationResponseDto
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    UserName = r.User.Username,
+                    RoomId = r.RoomId,
+                    RoomName = r.Room.Name,
+                    CheckInDate = r.CheckInDate,
+                    CheckOutDate = r.CheckOutDate,
+                    TotalPrice = (decimal)r.TotalPrice,
+                    Status = r.Status
+                })
                 .ToListAsync();
         }
 
-        public async Task<Reservation?> GetReservationByIdAsync(long id)
+        public async Task<ReservationResponseDto?> GetReservationByIdAsync(long id)
         {
             return await _context.Reservations
-                .Include(r => r.Room)
-                .Include(r => r.User)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .AsNoTracking()
+                .Where(r => r.Id == id)
+                .Select(r => new ReservationResponseDto
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    UserName = r.User.Username,
+                    RoomId = r.RoomId,
+                    RoomName = r.Room.Name,
+                    CheckInDate = r.CheckInDate,
+                    CheckOutDate = r.CheckOutDate,
+                    TotalPrice = (decimal)r.TotalPrice,
+                    Status = r.Status
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Reservation> CreateReservationAsync(Reservation reservation)

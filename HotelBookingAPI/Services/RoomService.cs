@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Entity;
+﻿using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,18 +15,43 @@ namespace HotelBookingAPI.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<Room>> GetAllRoomsAsync()
+        public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
         {
             return await _context.Rooms
-                .Include(r => r.Hotel)
+                .AsNoTracking()
+                .Select(r => new RoomResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    HotelId = r.HotelId,
+                    HotelName = r.Hotel.Name,
+                    RoomNumber = r.RoomNumber,
+                    Capacity = r.Capacity,
+                    Price = r.Price,
+                    Description = r.Description,
+                    Photo = r.Photo
+                })
                 .ToListAsync();
         }
 
-        public async Task<Room?> GetRoomByIdAsync(long id)
+        public async Task<RoomResponseDto?> GetRoomByIdAsync(long id)
         {
             return await _context.Rooms
-                .Include(r => r.Hotel)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .AsNoTracking()
+                .Where(r => r.Id == id)
+                .Select(r => new RoomResponseDto
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    HotelId = r.HotelId,
+                    HotelName = r.Hotel.Name,
+                    RoomNumber = r.RoomNumber,
+                    Capacity = r.Capacity,
+                    Price = r.Price,
+                    Description = r.Description,
+                    Photo = r.Photo
+                })
+                .FirstOrDefaultAsync();
         }
 
         public async Task<Room> CreateRoomAsync(Room room)

@@ -1,0 +1,156 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\user.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\room.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\room.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\reservation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\reservation.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\refreshtoken.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\refreshtoken.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\passwordreset.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\passwordreset.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\models\\hotel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\models\\hotel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\services\\reservationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\services\\reservationservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|c:\\users\\dell\\onedrive - ostim teknik universitesi\\masa\u00FCst\u00FC\\hotelbookingapi\\hotelbookingapi\\entity\\hotelbookingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{1B782DF0-8ABF-4555-874F-3D02C0590FB6}|HotelBookingAPI\\HotelBookingAPI.csproj|solutionrelative:hotelbookingapi\\entity\\hotelbookingdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 385,
+          "SelectedChildIndex": 3,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Reservation.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Reservation.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\Reservation.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Reservation.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\Reservation.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAA5wB4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:24:09.622Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "RefreshToken.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\RefreshToken.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\RefreshToken.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\RefreshToken.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\RefreshToken.cs",
+              "ViewState": "AgIAAAIAAAAAAAAAAAAqwBgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:45:01.053Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Room.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Room.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\Room.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Room.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\Room.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAiwB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:45:09.572Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "User.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\User.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\User.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\User.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\User.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAA1wBUAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:24:02.934Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "PasswordReset.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\PasswordReset.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\PasswordReset.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\PasswordReset.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\PasswordReset.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:44:56.557Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Hotel.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Hotel.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\Models\\Hotel.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\Models\\Hotel.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\Models\\Hotel.cs",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAkwBgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:44:52.165Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "ReservationService.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Services\\ReservationService.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Services\\ReservationService.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Services\\ReservationService.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Services\\ReservationService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEEAAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:24:23.387Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "HotelBookingDBContext.cs",
+              "DocumentMoniker": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\HotelBookingDBContext.cs",
+              "RelativeDocumentMoniker": "HotelBookingAPI\\Entity\\HotelBookingDBContext.cs",
+              "ToolTip": "C:\\Users\\Dell\\OneDrive - Ostim Teknik Universitesi\\Masa\u00FCst\u00FC\\HotelBookingAPI\\HotelBookingAPI\\Entity\\HotelBookingDBContext.cs",
+              "RelativeToolTip": "HotelBookingAPI\\Entity\\HotelBookingDBContext.cs",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAkwB0AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-11T13:23:49.383Z",
+              "EditorCaption": ""
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

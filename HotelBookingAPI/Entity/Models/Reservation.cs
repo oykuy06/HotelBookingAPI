@@ -8,11 +8,11 @@ namespace HotelBookingAPI.Entity.Models
 
         [Required]
         public long UserId { get; set; }
-        public User User { get; set; }
+        public virtual User User { get; set; } //Lazy Loading
 
         [Required]
         public long RoomId { get; set; }
-        public Room Room { get; set; }
+        public virtual Room Room { get; set; } //Lazy Loading
 
         [Required]
         public DateTime CheckInDate { get; set; }

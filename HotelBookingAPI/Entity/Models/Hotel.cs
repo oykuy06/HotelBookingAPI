@@ -19,6 +19,6 @@ namespace HotelBookingAPI.Entity.Models
         public string Address { get; set; }
         public string Photo { get; set; }
 
-        public List<Room> Rooms { get; set; } = new List<Room>(); //return empty list
+        public virtual List<Room> Rooms { get; set; } = new List<Room>(); //return empty list, lazy loading
     }
 }
