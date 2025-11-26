@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelBookingAPI.Migrations
 {
     [DbContext(typeof(HotelBookingDBContext))]
-    [Migration("20251021103741_InitialCreate")]
+    [Migration("20251125201536_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -102,6 +102,34 @@ namespace HotelBookingAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PasswordResets");
+                });
+
+            modelBuilder.Entity("HotelBookingAPI.Entity.Models.RefreshToken", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("Expiration")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("UserId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.Reservation", b =>
@@ -251,12 +279,23 @@ namespace HotelBookingAPI.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("HotelBookingAPI.Entity.Models.RefreshToken", b =>
+                {
+                    b.HasOne("HotelBookingAPI.Entity.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.Reservation", b =>
                 {
                     b.HasOne("HotelBookingAPI.Entity.Models.Room", "Room")
                         .WithMany("Reservations")
                         .HasForeignKey("RoomId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("HotelBookingAPI.Entity.Models.User", "User")

@@ -5,11 +5,14 @@ using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ============================
 // CORS
+// ============================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -18,12 +21,13 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod());
 });
 
+// ============================
 // JWT Settings
+// ============================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
+
 var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
              ?? throw new Exception("JWT_KEY environment variable not set.");
-
-var expiresInHours = jwtSettings.GetValue<int>("ExpiresInHours", 2);
 
 builder.Services.AddAuthentication(options =>
 {
@@ -47,23 +51,62 @@ builder.Services.AddAuthentication(options =>
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 
-// Swagger
+// ============================
+// Swagger + JWT Button
+// ============================
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // “Authorize” butonu için security þemasý
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT token'ýnýzý buraya girin. (Bearer yazmadan direkt token girilir)"
+    });
 
-// DbContext
+    // Her endpoint’e otomatik olarak uygula
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
+
+// ============================
+// Database
+// ============================
 builder.Services.AddDbContext<HotelBookingDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
+// ============================
+// Dependency Injections
+// ============================
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IHotelService, HotelService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoomService, RoomService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IPasswordHashService, PasswordHashService>();
 
 var app = builder.Build();
 
+// ============================
+// Middleware
+// ============================
 app.UseMiddleware<ExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -79,4 +122,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
 app.Run();

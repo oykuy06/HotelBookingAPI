@@ -19,7 +19,6 @@ namespace HotelBookingAPI.Dto.RequestDto
         public double Price { get; set; }
         [StringLength(100)]
         public string Description { get; set; }
-        [Url]
         public string? Photo { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using HotelBookingAPI.Entity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HotelBookingAPI.Migrations
 {
     [DbContext(typeof(HotelBookingDBContext))]
-    partial class HotelBookingDBContextModelSnapshot : ModelSnapshot
+    [Migration("20251126174827_AddUniqueIndexes")]
+    partial class AddUniqueIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -59,9 +62,6 @@ namespace HotelBookingAPI.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
 
                     b.ToTable("Hotels");
                 });
@@ -171,10 +171,9 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("RoomId");
 
-                    b.HasIndex("RoomId", "CheckInDate", "CheckOutDate")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Reservations");
                 });

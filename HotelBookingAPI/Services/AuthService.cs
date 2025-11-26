@@ -1,4 +1,5 @@
 ﻿using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
@@ -51,7 +52,7 @@ namespace HotelBookingAPI.Services
             return user;
         }
 
-        public async Task<(string accessToken, string refreshToken)?> LoginAsync(LoginDto dto)
+        public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
         {
             var email = dto.Email.ToLower();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
@@ -71,8 +72,13 @@ namespace HotelBookingAPI.Services
 
             await _context.SaveChangesAsync();
 
-            return (accessToken, refreshToken);
+            return new AuthResponseDto
+            {
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
         }
+
 
         private string GenerateJwtToken(User user)
         {

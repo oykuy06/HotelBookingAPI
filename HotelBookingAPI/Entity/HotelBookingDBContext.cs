@@ -17,6 +17,7 @@ namespace HotelBookingAPI.Entity
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(HotelBookingDBContext).Assembly);
             base.OnModelCreating(modelBuilder);
 
             // User - Reservation

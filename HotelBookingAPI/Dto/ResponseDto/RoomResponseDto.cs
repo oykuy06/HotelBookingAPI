@@ -12,7 +12,6 @@ namespace HotelBookingAPI.Dto.ResponseDto
         public int Capacity { get; set; }
         public double Price { get; set; }
         public string Description { get; set; }
-        [Url]
         public string? Photo { get; set; }
     }
 }

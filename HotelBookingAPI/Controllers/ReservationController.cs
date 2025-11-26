@@ -28,9 +28,9 @@ namespace HotelBookingAPI.Controllers
             {
                 Id = r.Id,
                 UserId = r.UserId,
-                UserName = r.User?.Username,
+                UserName = r.UserName,
                 RoomId = r.RoomId,
-                RoomName = r.Room?.Name,
+                RoomName = r.RoomName,
                 CheckInDate = r.CheckInDate,
                 CheckOutDate = r.CheckOutDate,
                 TotalPrice = r.TotalPrice,
@@ -52,9 +52,9 @@ namespace HotelBookingAPI.Controllers
             {
                 Id = reservation.Id,
                 UserId = reservation.UserId,
-                UserName = reservation.User?.Username,
+                UserName = reservation.UserName,
                 RoomId = reservation.RoomId,
-                RoomName = reservation.Room?.Name,
+                RoomName = reservation.RoomName,
                 CheckInDate = reservation.CheckInDate,
                 CheckOutDate = reservation.CheckOutDate,
                 TotalPrice = reservation.TotalPrice,
