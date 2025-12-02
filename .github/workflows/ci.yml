@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI + Local CD Simulation
 
 on:
   push:
@@ -42,10 +42,5 @@ jobs:
 
     - name: Publish Project
       run: dotnet publish ./HotelBookingAPI/HotelBookingAPI.csproj -c Release -o ./publish
-      env:
-        JWT_KEY: ${{ secrets.JWT_KEY }}
-
-    - name: Run locally (simulation)
-      run: dotnet ./publish/HotelBookingAPI.dll
       env:
         JWT_KEY: ${{ secrets.JWT_KEY }}
