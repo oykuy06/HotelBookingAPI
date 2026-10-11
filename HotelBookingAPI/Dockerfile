@@ -2,27 +2,21 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-# Proje dosyalarını kopyala
-COPY *.sln .
-COPY HotelBookingAPI/*.csproj ./HotelBookingAPI/
+# Proje dosyasını kopyala ve restore et
+COPY HotelBookingAPI.csproj ./
 RUN dotnet restore
 
-# Tüm projeyi kopyala
+# Proje dosyalarını kopyala
 COPY . .
-WORKDIR /app/HotelBookingAPI
-RUN dotnet publish -c Release -o out
+RUN dotnet publish HotelBookingAPI.csproj -c Release -o out
 
 # 2. Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=build /app/HotelBookingAPI/out .
-ENV DOTNET_RUNNING_IN_CONTAINER=true
-ENV DOTNET_USE_POLLING_FILE_WATCHER=true
-ENV DOTNET_HOST_PATH=/usr/share/dotnet/dotnet
 
-# JWT_KEY environment variable
-ENV JWT_KEY=${JWT_KEY}
+COPY --from=build /app/out .
 
-# Port
+ENV ASPNETCORE_URLS=http://+:5000
 EXPOSE 5000
+
 ENTRYPOINT ["dotnet", "HotelBookingAPI.dll"]
