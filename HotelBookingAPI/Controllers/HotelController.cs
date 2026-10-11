@@ -4,6 +4,7 @@ using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -12,10 +13,14 @@ namespace HotelBookingAPI.Controllers
     public class HotelController : ControllerBase
     {
         private readonly IHotelService _hotelService;
+        private readonly IUserService _userService;
 
-        public HotelController(IHotelService hotelService)
+        public HotelController(
+            IHotelService hotelService,
+            IUserService userService)
         {
             _hotelService = hotelService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -80,7 +85,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> CreateHotel([FromBody] HotelDto dto)
         {
             if (!ModelState.IsValid)
@@ -109,11 +114,32 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPut("{id:long}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateHotel(long id, [FromBody] HotelDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
+
+            var hotel = await _hotelService.GetHotelByIdAsync(id);
+
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null ||
+                    !long.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Forbid();
+                }
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (hotel.Id != adminHotelId)
+                    return Forbid();
+            }
 
             var updatedHotel = await _hotelService.UpdateHotelAsync(id, new Hotel
             {
@@ -130,14 +156,38 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteHotel(long id)
         {
+            var hotel = await _hotelService.GetHotelByIdAsync(id);
+
+            if (hotel == null)
+                return NotFound(new { message = "Hotel not found" });
+
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null ||
+                    !long.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Forbid();
+                }
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (hotel.Id != adminHotelId)
+                    return Forbid();
+            }
+
             var success = await _hotelService.DeleteHotelAsync(id);
+
             if (!success)
                 return NotFound(new { message = "Hotel not found" });
 
             return Ok(new { message = "Hotel deleted successfully" });
+
         }
+
     }
 }

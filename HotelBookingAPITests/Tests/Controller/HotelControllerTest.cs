@@ -2,8 +2,10 @@
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Security.Claims;
 using Xunit;
 
 namespace HotelBookingAPI.Tests.Controllers
@@ -11,12 +13,27 @@ namespace HotelBookingAPI.Tests.Controllers
     public class HotelControllerTest
     {
         private readonly Mock<IHotelService> _hotelServiceMock;
+        private readonly Mock<IUserService> _userServiceMock;
         private readonly HotelController _controller;
 
         public HotelControllerTest()
         {
             _hotelServiceMock = new Mock<IHotelService>();
-            _controller = new HotelController(_hotelServiceMock.Object);
+            _userServiceMock = new Mock<IUserService>();
+
+            _controller = new HotelController(
+                _hotelServiceMock.Object,
+                _userServiceMock.Object
+            );
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(
+            new ClaimsIdentity())
+                }
+            };
         }
 
         [Fact]
@@ -124,9 +141,268 @@ namespace HotelBookingAPI.Tests.Controllers
         }
 
         [Fact]
+        public async Task UpdateHotel_WhenHotelExists_ReturnsOk()
+        {
+            // Arrange
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(1))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 1,
+                    Name = "Test Hotel",
+                    Description = "Old Description",
+                    Address = "Old Address",
+                    Photo = "old-photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _hotelServiceMock
+                .Setup(s => s.UpdateHotelAsync(
+                    1,
+                    It.IsAny<Hotel>()))
+                .ReturnsAsync(new Hotel
+                {
+                    Id = 1,
+                    Name = "Updated Hotel",
+                    Description = "Updated Description",
+                    Address = "Updated Address",
+                    Photo = "updated-photo"
+                });
+
+            var dto = new HotelBookingAPI.Dto.RequestDto.HotelDto
+            {
+                Name = "Updated Hotel",
+                Description = "Updated Description",
+                Address = "Updated Address",
+                Photo = "updated-photo"
+            };
+
+            // Act
+            var result = await _controller.UpdateHotel(1, dto);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task UpdateHotel_WhenAdminTriesOtherHotel_ReturnsForbid()
+        {
+            // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "9"),
+            new Claim(ClaimTypes.Role, "Admin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(2))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 2,
+                    Name = "Another Hotel",
+                    Description = "Description",
+                    Address = "Address",
+                    Photo = "photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _userServiceMock
+                .Setup(s => s.GetHotelIdByUserIdAsync(9))
+                .ReturnsAsync((long?)1);
+
+            var dto = new HotelBookingAPI.Dto.RequestDto.HotelDto
+            {
+                Name = "Updated Hotel",
+                Description = "Updated Description",
+                Address = "Updated Address",
+                Photo = "updated-photo"
+            };
+
+            // Act
+            var result = await _controller.UpdateHotel(2, dto);
+
+            // Assert
+            Assert.IsType<ForbidResult>(result);
+
+            _hotelServiceMock.Verify(
+                s => s.UpdateHotelAsync(2, It.IsAny<Hotel>()),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task UpdateHotel_WhenSuperAdminUpdatesOtherHotel_ReturnsOk()
+        {
+            // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "10"),
+            new Claim(ClaimTypes.Role, "SuperAdmin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(2))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 2,
+                    Name = "Another Hotel",
+                    Description = "Description",
+                    Address = "Address",
+                    Photo = "photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _hotelServiceMock
+                .Setup(s => s.UpdateHotelAsync(2, It.IsAny<Hotel>()))
+                .ReturnsAsync(new Hotel
+                {
+                    Id = 2,
+                    Name = "Updated Hotel",
+                    Description = "Updated Description",
+                    Address = "Updated Address",
+                    Photo = "updated-photo"
+                });
+
+            var dto = new HotelBookingAPI.Dto.RequestDto.HotelDto
+            {
+                Name = "Updated Hotel",
+                Description = "Updated Description",
+                Address = "Updated Address",
+                Photo = "updated-photo"
+            };
+
+            // Act
+            var result = await _controller.UpdateHotel(2, dto);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+        }
+
+        [Fact]
+        public async Task DeleteHotel_WhenAdminTriesOtherHotel_ReturnsForbid()
+        {
+            // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "9"),
+            new Claim(ClaimTypes.Role, "Admin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(2))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 2,
+                    Name = "Another Hotel",
+                    Description = "Description",
+                    Address = "Address",
+                    Photo = "photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _userServiceMock
+                .Setup(s => s.GetHotelIdByUserIdAsync(9))
+                .ReturnsAsync((long?)1);
+
+            // Act
+            var result = await _controller.DeleteHotel(2);
+
+            // Assert
+            Assert.IsType<ForbidResult>(result);
+
+            _hotelServiceMock.Verify(
+                s => s.DeleteHotelAsync(2),
+                Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteHotel_WhenSuperAdminDeletesOtherHotel_ReturnsOk()
+        {
+            // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "10"),
+            new Claim(ClaimTypes.Role, "SuperAdmin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(2))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 2,
+                    Name = "Another Hotel",
+                    Description = "Description",
+                    Address = "Address",
+                    Photo = "photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _hotelServiceMock
+                .Setup(s => s.DeleteHotelAsync(2))
+                .ReturnsAsync(true);
+
+            // Act
+            var result = await _controller.DeleteHotel(2);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+
+            _hotelServiceMock.Verify(
+                s => s.DeleteHotelAsync(2),
+                Times.Once);
+        }
+
+        [Fact]
         public async Task DeleteHotel_WhenSuccess_ReturnsOk()
         {
             // Arrange
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(1))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 1,
+                    Name = "Test Hotel"
+                });
+
             _hotelServiceMock
                 .Setup(s => s.DeleteHotelAsync(1))
                 .ReturnsAsync(true);
@@ -143,14 +419,18 @@ namespace HotelBookingAPI.Tests.Controllers
         {
             // Arrange
             _hotelServiceMock
-                .Setup(s => s.DeleteHotelAsync(99))
-                .ReturnsAsync(false);
+                .Setup(s => s.GetHotelByIdAsync(99))
+                .ReturnsAsync((HotelResponseDto?)null);
 
             // Act
             var result = await _controller.DeleteHotel(99);
 
             // Assert
             Assert.IsType<NotFoundObjectResult>(result);
+
+            _hotelServiceMock.Verify(
+                s => s.DeleteHotelAsync(99),
+                Times.Never);
         }
     }
 }

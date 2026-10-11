@@ -1,6 +1,10 @@
-﻿using HotelBookingAPI.Entity;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
+using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
@@ -11,18 +15,38 @@ namespace HotelBookingAPI.Tests.Services
         private HotelBookingDBContext CreateDbContext()
         {
             var options = new DbContextOptionsBuilder<HotelBookingDBContext>()
-                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-                .Options;
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .Options;
 
-            return new HotelBookingDBContext(options);
+        return new HotelBookingDBContext(options);
+        }
+
+        private UserService CreateUserService(HotelBookingDBContext context)
+        {
+            var passwordHashService = new TestPasswordHashService();
+
+            return new UserService(context, passwordHashService);
+        }
+
+        private class TestPasswordHashService : IPasswordHashService
+        {
+            public string HashPassword(string password)
+            {
+                return "hashed_" + password;
+            }
+
+            public bool VerifyPassword(string password, string passwordHash)
+            {
+                return passwordHash == "hashed_" + password;
+            }
         }
 
         [Fact]
         public async Task CreateUserAsync_ShouldCreateUser()
         {
             // Arrange
-            var context = CreateDbContext();
-            var service = new UserService(context);
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
 
             // Act
             var user = await service.CreateUserAsync(
@@ -35,6 +59,7 @@ namespace HotelBookingAPI.Tests.Services
             Assert.NotNull(user);
             Assert.Equal("test@mail.com", user.Email);
             Assert.Equal("User", user.Role);
+            Assert.Equal("hashed_123456", user.PasswordHash);
             Assert.Single(context.Users);
         }
 
@@ -42,7 +67,7 @@ namespace HotelBookingAPI.Tests.Services
         public async Task GetUserByIdAsync_ShouldReturnUser_WhenUserExists()
         {
             // Arrange
-            var context = CreateDbContext();
+            using var context = CreateDbContext();
 
             var user = new User
             {
@@ -55,7 +80,7 @@ namespace HotelBookingAPI.Tests.Services
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var service = CreateUserService(context);
 
             // Act
             var result = await service.GetUserByIdAsync(user.Id);
@@ -69,8 +94,8 @@ namespace HotelBookingAPI.Tests.Services
         public async Task GetUserByIdAsync_ShouldReturnNull_WhenUserNotFound()
         {
             // Arrange
-            var context = CreateDbContext();
-            var service = new UserService(context);
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
 
             // Act
             var result = await service.GetUserByIdAsync(999);
@@ -83,16 +108,28 @@ namespace HotelBookingAPI.Tests.Services
         public async Task GetAllUsersAsync_ShouldReturnUsers()
         {
             // Arrange
-            var context = CreateDbContext();
+            using var context = CreateDbContext();
 
             context.Users.AddRange(
-                new User { Email = "a@mail.com", Username = "a", PasswordHash = "x", Role = "User" },
-                new User { Email = "b@mail.com", Username = "b", PasswordHash = "y", Role = "Admin" }
+                new User
+                {
+                    Email = "a@mail.com",
+                    Username = "a",
+                    PasswordHash = "x",
+                    Role = "User"
+                },
+                new User
+                {
+                    Email = "b@mail.com",
+                    Username = "b",
+                    PasswordHash = "y",
+                    Role = "Admin"
+                }
             );
 
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var service = CreateUserService(context);
 
             // Act
             var users = await service.GetAllUsersAsync();
@@ -105,7 +142,7 @@ namespace HotelBookingAPI.Tests.Services
         public async Task UpdateUserAsync_ShouldUpdateUser_WhenUserExists()
         {
             // Arrange
-            var context = CreateDbContext();
+            using var context = CreateDbContext();
 
             var user = new User
             {
@@ -118,7 +155,7 @@ namespace HotelBookingAPI.Tests.Services
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var service = CreateUserService(context);
 
             // Act
             var updatedUser = await service.UpdateUserAsync(
@@ -132,13 +169,14 @@ namespace HotelBookingAPI.Tests.Services
             Assert.NotNull(updatedUser);
             Assert.Equal("new@mail.com", updatedUser.Email);
             Assert.Equal("Admin", updatedUser.Role);
+            Assert.Equal("hashed_newpass", updatedUser.PasswordHash);
         }
 
         [Fact]
         public async Task DeleteUserAsync_ShouldDeleteUser_WhenUserExists()
         {
             // Arrange
-            var context = CreateDbContext();
+            using var context = CreateDbContext();
 
             var user = new User
             {
@@ -151,7 +189,7 @@ namespace HotelBookingAPI.Tests.Services
             context.Users.Add(user);
             await context.SaveChangesAsync();
 
-            var service = new UserService(context);
+            var service = CreateUserService(context);
 
             // Act
             var result = await service.DeleteUserAsync(user.Id);
@@ -165,8 +203,8 @@ namespace HotelBookingAPI.Tests.Services
         public async Task DeleteUserAsync_ShouldReturnFalse_WhenUserNotFound()
         {
             // Arrange
-            var context = CreateDbContext();
-            var service = new UserService(context);
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
 
             // Act
             var result = await service.DeleteUserAsync(999);

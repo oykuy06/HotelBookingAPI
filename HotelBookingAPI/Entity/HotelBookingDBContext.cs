@@ -54,6 +54,13 @@ namespace HotelBookingAPI.Entity
                 .WithMany()
                 .HasForeignKey(pr => pr.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            //User - Hotel
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Hotel)
+                .WithMany(h => h.Admins)
+                .HasForeignKey(u => u.HotelId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
     }

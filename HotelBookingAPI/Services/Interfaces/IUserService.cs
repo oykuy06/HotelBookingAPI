@@ -10,5 +10,6 @@ namespace HotelBookingAPI.Services.Interfaces
         Task<User> CreateUserAsync(string email, string password, string role = "User");
         Task<User?> UpdateUserAsync(long id, string email, string? password = null, string? role = null);
         Task<bool> DeleteUserAsync(long id);
+        Task<long?> GetHotelIdByUserIdAsync(long userId);
     }
 }

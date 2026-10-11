@@ -26,15 +26,16 @@ namespace HotelBookingAPI.Controllers
 
             return Ok(new { message = "User created successfully", user.Id });
         }
-
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)
         {
-            var token = await _authService.LoginAsync(dto);
-            if (token == null) return Unauthorized(new { message = "Invalid credentials" });
+            var authResponse = await _authService.LoginAsync(dto);
 
-            return Ok(new { token });
+            if (authResponse == null)
+                return Unauthorized(new { message = "Invalid credentials" });
+
+            return Ok(authResponse);
         }
 
         [HttpPost("forgot-password")]

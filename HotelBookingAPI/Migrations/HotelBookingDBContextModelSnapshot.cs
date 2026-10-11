@@ -245,6 +245,9 @@ namespace HotelBookingAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<long?>("HotelId")
+                        .HasColumnType("bigint");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -269,6 +272,8 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("HotelId");
 
                     b.ToTable("Users");
                 });
@@ -325,8 +330,20 @@ namespace HotelBookingAPI.Migrations
                     b.Navigation("Hotel");
                 });
 
+            modelBuilder.Entity("HotelBookingAPI.Entity.Models.User", b =>
+                {
+                    b.HasOne("HotelBookingAPI.Entity.Models.Hotel", "Hotel")
+                        .WithMany("Admins")
+                        .HasForeignKey("HotelId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Hotel");
+                });
+
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.Hotel", b =>
                 {
+                    b.Navigation("Admins");
+
                     b.Navigation("Rooms");
                 });
 

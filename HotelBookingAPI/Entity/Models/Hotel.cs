@@ -13,12 +13,14 @@ namespace HotelBookingAPI.Entity.Models
         [Required]
         [StringLength(100)]
         public string Description { get; set; }
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
         [Required]
         [StringLength(50)]
         public string Address { get; set; }
         public string Photo { get; set; }
 
         public virtual List<Room> Rooms { get; set; } = new List<Room>(); //return empty list, lazy loading
+
+        public List<User> Admins { get; set; } = new();
     }
 }

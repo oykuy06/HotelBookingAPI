@@ -16,6 +16,9 @@ namespace HotelBookingAPI.Entity.Models
         [StringLength(20)]
         public string Role { get; set; }
 
+        public long? HotelId { get; set; }
+        public Hotel? Hotel { get; set; }
+
         public List<Reservation> Reservations { get; set; } = new(); //return empty list
     }
 }
