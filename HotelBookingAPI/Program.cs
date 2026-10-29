@@ -26,8 +26,9 @@ builder.Services.AddCors(options =>
 // ============================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 
-var jwtKey = Environment.GetEnvironmentVariable("JWT_KEY")
-             ?? throw new Exception("JWT_KEY environment variable not set.");
+var jwtKey = builder.Configuration["Jwt:Key"]
+             ?? throw new InvalidOperationException(
+                 "JWT signing key is not configured.");
 
 builder.Services.AddAuthentication(options =>
 {

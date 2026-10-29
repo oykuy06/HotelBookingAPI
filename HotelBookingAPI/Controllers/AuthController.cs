@@ -18,7 +18,7 @@ namespace HotelBookingAPI.Controllers
 
         [HttpPost("register")]
         [AllowAnonymous]
-        public async Task<IActionResult> Register([FromBody] UserDto dto)
+        public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             var user = await _authService.RegisterAsync(dto);
             if (user == null)
@@ -26,6 +26,7 @@ namespace HotelBookingAPI.Controllers
 
             return Ok(new { message = "User created successfully", user.Id });
         }
+
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginDto dto)

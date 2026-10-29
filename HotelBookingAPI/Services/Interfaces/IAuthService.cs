@@ -6,7 +6,7 @@ namespace HotelBookingAPI.Services.Interfaces
 {
     public interface IAuthService
     {
-        Task<User?> RegisterAsync(UserDto dto);
+        Task<User?> RegisterAsync(RegisterDto dto);
         Task<string?> ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string token, string newPassword);
         Task<string?> RefreshAccessTokenAsync(string refreshToken);

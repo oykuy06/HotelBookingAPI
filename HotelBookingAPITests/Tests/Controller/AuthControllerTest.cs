@@ -24,11 +24,10 @@ namespace HotelBookingAPI.Tests.Controllers
         public async Task Register_EmailAlreadyExists_ReturnsBadRequest()
         {
             // arrange
-            var dto = new UserDto
+            var dto = new RegisterDto
             {
                 Email = "test@test.com",
-                Password = "123456",
-                Role = "User"
+                Password = "123456"
             };
 
             _authServiceMock
@@ -45,11 +44,10 @@ namespace HotelBookingAPI.Tests.Controllers
         [Fact]
         public async Task Register_Success_ReturnsOk()
         {
-            var dto = new UserDto
+            var dto = new RegisterDto
             {
                 Email = "test@test.com",
-                Password = "123456",
-                Role = "User"
+                Password = "123456"
             };
 
             _authServiceMock

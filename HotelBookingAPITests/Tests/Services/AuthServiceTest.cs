@@ -58,11 +58,10 @@ public class AuthServiceTest
     public async Task RegisterAsync_NewUser_ShouldCreateUser()
     {
         // Arrange
-        var dto = new UserDto
+        var dto = new RegisterDto
         {
             Email = "test@test.com",
-            Password = "123456",
-            Role = "User"
+            Password = "123456"
         };
 
         _passwordHashServiceMock
@@ -77,6 +76,30 @@ public class AuthServiceTest
         Assert.Equal("test@test.com", result.Email);
         Assert.Equal("hashed_password", result.PasswordHash);
     }
+
+
+    [Fact]
+    public async Task RegisterAsync_AdminRoleRequested_ShouldCreateUserWithUserRole()
+    {
+        // Arrange
+        var dto = new RegisterDto
+        {
+            Email = "admin@test.com",
+            Password = "123456"
+        };
+
+        _passwordHashServiceMock
+            .Setup(x => x.HashPassword(It.IsAny<string>()))
+            .Returns("hashed_password");
+
+        // Act
+        var result = await _authService.RegisterAsync(dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal("User", result.Role);
+    }
+
 
     // LOGIN TEST
     [Fact]

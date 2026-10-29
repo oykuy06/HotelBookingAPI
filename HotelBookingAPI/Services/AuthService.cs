@@ -31,7 +31,7 @@ namespace HotelBookingAPI.Services
             _passwordService = passwordService;
         }
 
-        public async Task<User?> RegisterAsync(UserDto dto)
+        public async Task<User?> RegisterAsync(RegisterDto dto)
         {
             var email = dto.Email.ToLower(); 
 
@@ -43,7 +43,7 @@ namespace HotelBookingAPI.Services
                 Email = email,
                 Username = email.Split('@')[0],
                 PasswordHash = _passwordHashService.HashPassword(dto.Password),
-                Role = dto.Role
+                Role = "User"
             };
 
             _context.Users.Add(user);
