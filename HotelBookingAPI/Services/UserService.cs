@@ -120,9 +120,21 @@ namespace HotelBookingAPI.Services
                 return false;
 
             _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
 
-            return true;
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> UserExistsAsync(long id)
+        {
+            return await _context.Users.AnyAsync(u => u.Id == id);
         }
 
         public async Task<long?> GetHotelIdByUserIdAsync(long userId)

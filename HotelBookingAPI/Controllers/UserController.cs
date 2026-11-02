@@ -165,10 +165,18 @@ namespace HotelBookingAPI.Controllers
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteUser(long id)
         {
+            var exists = await _userService.UserExistsAsync(id);
+
+            if (!exists)
+                return NotFound();
+
             var success = await _userService.DeleteUserAsync(id);
 
             if (!success)
-                return NotFound();
+                return Conflict(new
+                {
+                    message = "User cannot be deleted because related records exist."
+                });
 
             return Ok(new { message = "Deleted user" });
         }

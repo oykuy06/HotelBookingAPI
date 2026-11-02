@@ -384,6 +384,10 @@ public class UserControllerTest
         SetUserContext(1, "Admin");
 
         _userServiceMock
+            .Setup(s => s.UserExistsAsync(2))
+            .ReturnsAsync(true);
+
+        _userServiceMock
             .Setup(s => s.DeleteUserAsync(2))
             .ReturnsAsync(true);
 
@@ -391,12 +395,9 @@ public class UserControllerTest
         var result = await _controller.DeleteUser(2);
 
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
+        Assert.IsType<OkObjectResult>(result);
 
-        _userServiceMock.Verify(
-            s => s.DeleteUserAsync(2),
-            Times.Once);
+        _userServiceMock.Verify(s => s.DeleteUserAsync(2), Times.Once);
     }
 
     [Fact]
@@ -406,7 +407,7 @@ public class UserControllerTest
         SetUserContext(1, "Admin");
 
         _userServiceMock
-            .Setup(s => s.DeleteUserAsync(99))
+            .Setup(s => s.UserExistsAsync(99))
             .ReturnsAsync(false);
 
         // Act
@@ -415,9 +416,7 @@ public class UserControllerTest
         // Assert
         Assert.IsType<NotFoundResult>(result);
 
-        _userServiceMock.Verify(
-            s => s.DeleteUserAsync(99),
-            Times.Once);
+        _userServiceMock.Verify(s => s.DeleteUserAsync(99), Times.Never);
     }
 
 
@@ -555,5 +554,25 @@ public class UserControllerTest
             Times.Never);
     }
 
+    [Fact]
+    public async Task DeleteUser_UserHasRelatedRecords_ReturnsConflict()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        _userServiceMock
+            .Setup(s => s.UserExistsAsync(2))
+            .ReturnsAsync(true);
+
+        _userServiceMock
+            .Setup(s => s.DeleteUserAsync(2))
+            .ReturnsAsync(false);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<ConflictObjectResult>(result);
+    }
 
 }
