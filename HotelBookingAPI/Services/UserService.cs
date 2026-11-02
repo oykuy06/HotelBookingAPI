@@ -3,6 +3,7 @@ using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using HotelBookingAPI.Constants;
 
 namespace HotelBookingAPI.Services
 {
@@ -70,17 +71,14 @@ namespace HotelBookingAPI.Services
                 .ToListAsync();
         }
 
-        public async Task<User> CreateUserAsync(
-            string email,
-            string password,
-            string role = "User")
+        public async Task<User> CreateUserAsync(string email, string password, string role = UserRoles.User)
         {
             var user = new User
             {
                 Email = email,
                 Username = email.Split('@')[0],
                 PasswordHash = _passwordHashService.HashPassword(password),
-                Role = role
+                Role = UserRoles.Normalize(role)
             };
 
             _context.Users.Add(user);
@@ -89,11 +87,7 @@ namespace HotelBookingAPI.Services
             return user;
         }
 
-        public async Task<User?> UpdateUserAsync(
-            long id,
-            string email,
-            string? password = null,
-            string? role = null)
+        public async Task<User?> UpdateUserAsync(long id, string email, string? password = null, string? role = null)
         {
             var user = await _context.Users.FindAsync(id);
 
@@ -108,9 +102,9 @@ namespace HotelBookingAPI.Services
                 user.PasswordHash = _passwordHashService.HashPassword(password);
             }
 
-            if (!string.IsNullOrEmpty(role))
+            if (!string.IsNullOrWhiteSpace(role))
             {
-                user.Role = role;
+                user.Role = UserRoles.Normalize(role);
             }
 
             await _context.SaveChangesAsync();

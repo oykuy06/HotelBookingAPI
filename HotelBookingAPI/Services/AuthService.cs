@@ -9,6 +9,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using HotelBookingAPI.Constants;
 
 namespace HotelBookingAPI.Services
 {
@@ -43,7 +44,7 @@ namespace HotelBookingAPI.Services
                 Email = email,
                 Username = email.Split('@')[0],
                 PasswordHash = _passwordHashService.HashPassword(dto.Password),
-                Role = "User"
+                Role = UserRoles.User
             };
 
             _context.Users.Add(user);
@@ -93,7 +94,7 @@ namespace HotelBookingAPI.Services
                 Subject = new ClaimsIdentity(new[]
                 {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, user.Role)
+            new Claim(ClaimTypes.Role, UserRoles.Normalize(user.Role))
         }),
                 Expires = DateTime.UtcNow.AddHours(_configuration.GetValue<int>("Jwt:ExpiresInHours", 2)),
                 Issuer = _configuration["Jwt:Issuer"],

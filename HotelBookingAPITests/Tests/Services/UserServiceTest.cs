@@ -212,5 +212,68 @@ namespace HotelBookingAPI.Tests.Services
             // Assert
             Assert.False(result);
         }
+
+        [Theory]
+        [InlineData("admin")]
+        [InlineData("ADMIN")]
+        [InlineData(" Admin ")]
+        [InlineData("superadmin")]
+        [InlineData("USER")]
+        public async Task CreateUserAsync_ShouldNormalizeRole(string role)
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act
+            var user = await service.CreateUserAsync(
+                email: "test@mail.com",
+                password: "123456",
+                role: role
+            );
+
+            // Assert
+            var expectedRole = role.Trim().ToLowerInvariant() switch
+            {
+                "admin" => "Admin",
+                "superadmin" => "SuperAdmin",
+                "user" => "User",
+                _ => throw new InvalidOperationException()
+            };
+
+            Assert.Equal(expectedRole, user.Role);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_ShouldNormalizeRole()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var user = new User
+            {
+                Email = "old@mail.com",
+                Username = "old",
+                PasswordHash = "hash",
+                Role = "User"
+            };
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var updatedUser = await service.UpdateUserAsync(
+                user.Id,
+                email: "old@mail.com",
+                role: " admin "
+            );
+
+            // Assert
+            Assert.NotNull(updatedUser);
+            Assert.Equal("Admin", updatedUser.Role);
+        }
+
     }
 }

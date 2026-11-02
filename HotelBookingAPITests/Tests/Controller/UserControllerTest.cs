@@ -421,5 +421,139 @@ public class UserControllerTest
     }
 
 
+    [Theory]
+    [InlineData("admin")]
+    [InlineData("ADMIN")]
+    [InlineData(" Admin ")]
+    public async Task CreateUser_AdminRoleIsNormalized_ReturnsCreated(string role)
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        {
+            Email = "newadmin@test.com",
+            Password = "Password123",
+            Role = role
+        };
+
+        var createdUser = new HotelBookingAPI.Entity.Models.User
+        {
+            Id = 10,
+            Email = "newadmin@test.com",
+            Username = "newadmin",
+            PasswordHash = "hashed-password",
+            Role = "Admin"
+        };
+
+        _userServiceMock
+            .Setup(s => s.CreateUserAsync(
+                "newadmin@test.com",
+                "Password123",
+                "Admin"))
+            .ReturnsAsync(createdUser);
+
+        // Act
+        var result = await _controller.CreateUser(dto);
+
+        // Assert
+        var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+        var response = Assert.IsType<UserResponseDto>(createdResult.Value);
+
+        Assert.Equal("Admin", response.Role);
+
+        _userServiceMock.Verify(
+            s => s.CreateUserAsync(
+                "newadmin@test.com",
+                "Password123",
+                "Admin"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateUser_AdminRoleIsNormalized_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(new UserResponseDto
+            {
+                Id = 2,
+                Email = "target@test.com",
+                Role = "User"
+            });
+
+        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        {
+            Email = "target@test.com",
+            Password = "Password123",
+            Role = " admin "
+        };
+
+        var updatedUser = new HotelBookingAPI.Entity.Models.User
+        {
+            Id = 2,
+            Email = "target@test.com",
+            Username = "target",
+            PasswordHash = "hashed-password",
+            Role = "Admin"
+        };
+
+        _userServiceMock
+            .Setup(s => s.UpdateUserAsync(
+                2,
+                "target@test.com",
+                "Password123",
+                "Admin"))
+            .ReturnsAsync(updatedUser);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal("Admin", response.Role);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                2,
+                "target@test.com",
+                "Password123",
+                "Admin"),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateUser_InvalidRole_ReturnsBadRequest()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        {
+            Email = "target@test.com",
+            Password = "Password123",
+            Role = "SuperMegaAdmin"
+        };
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>()),
+            Times.Never);
+    }
+
 
 }
