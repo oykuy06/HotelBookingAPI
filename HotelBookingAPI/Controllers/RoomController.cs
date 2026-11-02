@@ -4,6 +4,7 @@ using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -12,10 +13,12 @@ namespace HotelBookingAPI.Controllers
     public class RoomController : ControllerBase
     {
         private readonly IRoomService _roomService;
+        private readonly IUserService _userService;
 
-        public RoomController(IRoomService roomService)
+        public RoomController(IRoomService roomService, IUserService userService)
         {
             _roomService = roomService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -64,19 +67,44 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> CreateRoom([FromBody] RoomDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+            if (!string.IsNullOrEmpty(dto.Photo) &&
+                !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+            {
                 return BadRequest(new { message = "Photo must be a valid URL." });
+            }
+
+            long? hotelId;
+
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null ||
+                    !long.TryParse(userIdClaim.Value, out var userId))
+                {
+                    return Forbid();
+                }
+
+                hotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (hotelId == null)
+                    return Forbid();
+            }
+            else
+            {
+                hotelId = dto.HotelId;
+            }
 
             var room = new Room
             {
                 Name = dto.Name,
-                HotelId = dto.HotelId,
+                HotelId = hotelId.Value,
                 RoomNumber = dto.RoomNumber,
                 Capacity = dto.Capacity,
                 Price = dto.Price,
@@ -99,23 +127,51 @@ namespace HotelBookingAPI.Controllers
                 Photo = createdRoom.Photo
             };
 
-            return CreatedAtAction(nameof(GetRoomById), new { id = createdRoom.Id }, responseDto);
+            return CreatedAtAction(
+                nameof(GetRoomById),
+                new { id = createdRoom.Id },
+                responseDto);
         }
 
         [HttpPut("{id:long}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> UpdateRoom(long id, [FromBody] RoomDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (!string.IsNullOrEmpty(dto.Photo) && !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+            if (!string.IsNullOrEmpty(dto.Photo) &&
+                !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
+            {
                 return BadRequest(new { message = "Photo must be a valid URL." });
+            }
+
+            var existingRoom = await _roomService.GetRoomByIdAsync(id);
+
+            if (existingRoom == null)
+                return NotFound(new { message = "Room not found" });
+
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null ||
+                    !long.TryParse(userIdClaim.Value, out var userId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (adminHotelId == null || existingRoom.HotelId != adminHotelId)
+                    return Forbid();
+
+                if (dto.HotelId != adminHotelId)
+                    return Forbid();
+            }
 
             var updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
             {
                 Name = dto.Name,
-                HotelId = dto.HotelId,
+                HotelId = existingRoom.HotelId,
                 RoomNumber = dto.RoomNumber,
                 Capacity = dto.Capacity,
                 Price = dto.Price,
@@ -130,10 +186,33 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteRoom(long id)
         {
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null ||
+                    !long.TryParse(userIdClaim.Value, out var userId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (adminHotelId == null)
+                    return Forbid();
+
+                var room = await _roomService.GetRoomByIdAsync(id);
+
+                if (room == null)
+                    return NotFound(new { message = "Room not found" });
+
+                if (room.HotelId != adminHotelId)
+                    return Forbid();
+            }
+
             var success = await _roomService.DeleteRoomAsync(id);
+
             if (!success)
                 return NotFound(new { message = "Room not found" });
 

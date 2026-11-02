@@ -56,29 +56,41 @@ namespace HotelBookingAPI.Services
 
         public async Task<Room> CreateRoomAsync(Room room)
         {
-            if (!string.IsNullOrEmpty(room.Photo) && !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+            var hotel = await _context.Hotels
+                .FirstOrDefaultAsync(h => h.Id == room.HotelId);
+
+            if (hotel == null)
+                throw new ArgumentException("Hotel not found.");
+
+            if (!string.IsNullOrEmpty(room.Photo) &&
+                !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+            {
                 throw new ArgumentException("Photo must be a valid URL.");
+            }
+
+            room.Hotel = hotel;
 
             _context.Rooms.Add(room);
             await _context.SaveChangesAsync();
+
             return room;
         }
+
 
         public async Task<Room?> UpdateRoomAsync(long id, Room room)
         {
             var existingRoom = await _context.Rooms.FindAsync(id);
+
             if (existingRoom == null)
                 return null;
 
-            var hotelExists = await _context.Hotels.AnyAsync(h => h.Id == room.HotelId);
-            if (!hotelExists)
-                throw new Exception("Hotel not found");
-
-            if (!string.IsNullOrEmpty(room.Photo) && !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+            if (!string.IsNullOrEmpty(room.Photo) &&
+                !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
+            {
                 throw new ArgumentException("Photo must be a valid URL.");
+            }
 
             existingRoom.Name = room.Name;
-            existingRoom.HotelId = room.HotelId;
             existingRoom.RoomNumber = room.RoomNumber;
             existingRoom.Capacity = room.Capacity;
             existingRoom.Price = room.Price;
@@ -86,8 +98,10 @@ namespace HotelBookingAPI.Services
             existingRoom.Photo = room.Photo;
 
             await _context.SaveChangesAsync();
+
             return existingRoom;
         }
+
 
         public async Task<bool> DeleteRoomAsync(long id)
         {

@@ -169,5 +169,143 @@ namespace HotelBookingAPI.Tests.Services
             Assert.True(result);
             Assert.Empty(context.Rooms);
         }
+
+
+        [Fact]
+        public async Task UpdateRoomAsync_UpdatesRoomDetails()
+        {
+            // Arrange
+            var context = GetDbContext();
+
+            context.Hotels.Add(new Hotel
+            {
+                Id = 1,
+                Name = "Test Hotel",
+                Description = "Desc",
+                Address = "City",
+                Photo = "http://example.com/photo.jpg"
+            });
+
+            context.Rooms.Add(new Room
+            {
+                Id = 1,
+                Name = "Old Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 100,
+                Description = "Old description",
+                Photo = "http://example.com/room.jpg"
+            });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var updatedRoom = new Room
+            {
+                Name = "Updated Room",
+                HotelId = 1,
+                RoomNumber = 102,
+                Capacity = 3,
+                Price = 200,
+                Description = "Updated description",
+                Photo = "http://example.com/updated-room.jpg"
+            };
+
+            // Act
+            var result = await service.UpdateRoomAsync(1, updatedRoom);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Updated Room", result.Name);
+            Assert.Equal(102, result.RoomNumber);
+            Assert.Equal(200, result.Price);
+            Assert.Equal(1, result.HotelId);
+        }
+
+        [Fact]
+        public async Task UpdateRoomAsync_DoesNotChangeHotelId()
+        {
+            // Arrange
+            var context = GetDbContext();
+
+            context.Hotels.AddRange(
+                new Hotel
+                {
+                    Id = 1,
+                    Name = "Hotel One",
+                    Description = "Desc",
+                    Address = "City",
+                    Photo = "http://example.com/1.jpg"
+                },
+                new Hotel
+                {
+                    Id = 2,
+                    Name = "Hotel Two",
+                    Description = "Desc",
+                    Address = "City",
+                    Photo = "http://example.com/2.jpg"
+                });
+
+            context.Rooms.Add(new Room
+            {
+                Id = 1,
+                Name = "Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 100,
+                Description = "Description",
+                Photo = "http://example.com/room.jpg"
+            });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var updatedRoom = new Room
+            {
+                Name = "Updated Room",
+                HotelId = 2,
+                RoomNumber = 102,
+                Capacity = 3,
+                Price = 200,
+                Description = "Updated description",
+                Photo = "http://example.com/updated-room.jpg"
+            };
+
+            // Act
+            var result = await service.UpdateRoomAsync(1, updatedRoom);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal(1, result.HotelId);
+            Assert.Equal("Updated Room", result.Name);
+        }
+
+        [Fact]
+        public async Task UpdateRoomAsync_RoomDoesNotExist_ReturnsNull()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var service = GetService(context);
+
+            var room = new Room
+            {
+                Name = "Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 100,
+                Description = "Description"
+            };
+
+            // Act
+            var result = await service.UpdateRoomAsync(99, room);
+
+            // Assert
+            Assert.Null(result);
+        }
     }
 }
