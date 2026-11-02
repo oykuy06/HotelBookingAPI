@@ -32,6 +32,7 @@ public class AuthServiceTest
         // JWT config 
         var inMemorySettings = new Dictionary<string, string>
         {
+            { "Jwt:Key", "super_secret_test_key_1234567890!" },
             { "Jwt:Issuer", "HotelBookingAPI" },
             { "Jwt:Audience", "HotelBookingAPIUsers" },
             { "Jwt:ExpiresInHours", "2" },
@@ -41,9 +42,6 @@ public class AuthServiceTest
         _configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings)
             .Build();
-
-        // ENV VAR (JWT_KEY)
-        Environment.SetEnvironmentVariable("JWT_KEY", "super_secret_test_key_1234567890!");
 
         _authService = new AuthService(
             _context,
