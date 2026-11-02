@@ -577,7 +577,7 @@ public class ReservationServiceTest
         {
             RoomId = 1,
             CheckInDate = DateTime.Today.AddDays(6),
-            CheckOutDate = DateTime.Today.AddDays(11)
+            CheckOutDate = DateTime.Today.AddDays(12)
         };
 
         // Act
@@ -586,12 +586,111 @@ public class ReservationServiceTest
         // Assert
         Assert.NotNull(result);
         Assert.Equal(DateTime.Today.AddDays(6), result.CheckInDate);
-        Assert.Equal(DateTime.Today.AddDays(11), result.CheckOutDate);
+        Assert.Equal(DateTime.Today.AddDays(12), result.CheckOutDate);
 
-        // Fiyat, durum ve kullanıcı değişmemeli.
+        // Fiyat yeniden hesaplanmalı: 6 gece x 300 TL = 1800 TL
+        Assert.Equal(1800m, result.TotalPrice);
+
+        // Kullanıcı ve rezervasyon durumu değişmemeli.
         Assert.Equal(1, result.UserId);
-        Assert.Equal(1500, result.TotalPrice);
         Assert.Equal("Confirmed", result.Status);
+    }
+
+    [Fact]
+    public async Task CreateReservationAsync_CalculatesNights_RegardlessOfTime()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var checkIn = DateTime.Today.AddDays(5).AddHours(15);
+        var checkOut = DateTime.Today.AddDays(8).AddHours(11);
+
+        var reservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = checkIn,
+            CheckOutDate = checkOut,
+            Status = "Pending"
+        };
+
+        // Act
+        var result = await service.CreateReservationAsync(reservation);
+
+        // Assert
+        Assert.Equal(900m, result.TotalPrice);
+    }
+
+    [Fact]
+    public async Task CreateReservationAsync_ThrowsException_WhenCheckInAndCheckOutAreSameDay()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var checkIn = DateTime.Today.AddDays(5).AddHours(10);
+
+        var reservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = checkIn,
+            CheckOutDate = checkIn.AddHours(5),
+            Status = "Pending"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => service.CreateReservationAsync(reservation));
     }
 
     [Fact]
