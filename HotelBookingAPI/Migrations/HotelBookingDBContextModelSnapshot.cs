@@ -171,10 +171,9 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("RoomId");
 
-                    b.HasIndex("RoomId", "CheckInDate", "CheckOutDate")
-                        .IsUnique();
+                    b.HasIndex("UserId");
 
                     b.ToTable("Reservations");
                 });

@@ -8,14 +8,11 @@ namespace HotelBookingAPI.Entity.Configurations
     {
         public void Configure(EntityTypeBuilder<Reservation> builder)
         {
-            // Unique booking for same room & same date range
-            builder.HasIndex(b => new { b.RoomId, b.CheckInDate, b.CheckOutDate })
-                   .IsUnique();
-
-            builder.HasOne(b => b.User)
-                   .WithMany(u => u.Reservations)
-                   .HasForeignKey(b => b.UserId)
-                   .OnDelete(DeleteBehavior.SetNull);
+            // Reservation - Room
+            builder.HasOne(b => b.Room)
+                   .WithMany(r => r.Reservations)
+                   .HasForeignKey(b => b.RoomId)
+                   .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
