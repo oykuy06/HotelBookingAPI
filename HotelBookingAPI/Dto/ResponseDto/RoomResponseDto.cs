@@ -10,7 +10,7 @@ namespace HotelBookingAPI.Dto.ResponseDto
         public string HotelName { get; set; }
         public int RoomNumber { get; set; }
         public int Capacity { get; set; }
-        public double Price { get; set; }
+        public decimal Price { get; set; }
         public string Description { get; set; }
         public string? Photo { get; set; }
     }

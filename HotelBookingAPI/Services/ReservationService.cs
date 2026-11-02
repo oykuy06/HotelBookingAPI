@@ -62,11 +62,24 @@ namespace HotelBookingAPI.Services
             if (!userExists)
                 throw new ArgumentException("User not found");
 
-            var roomExists = await _context.Rooms
-                .AnyAsync(r => r.Id == reservation.RoomId);
+            var room = await _context.Rooms.FirstOrDefaultAsync(r => r.Id == reservation.RoomId);
 
-            if (!roomExists)
+            if (room == null)
                 throw new ArgumentException("Room not found");
+
+            if (reservation.CheckInDate >= reservation.CheckOutDate)
+                throw new ArgumentException("Check-out date must be after check-in date.");
+
+            var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+            DateTime.UtcNow,
+            "Turkey Standard Time");
+
+            if (reservation.CheckInDate.Date < turkeyTime.Date)
+                throw new ArgumentException("Check-in date cannot be in the past.");
+
+            var numberOfNights = (reservation.CheckOutDate - reservation.CheckInDate).Days;
+
+            reservation.TotalPrice = room.Price * numberOfNights;
 
             var hasConflict = await _context.Reservations
                 .AnyAsync(r =>
@@ -95,11 +108,24 @@ namespace HotelBookingAPI.Services
             if (existing == null)
                 return null;
 
-            var roomExists = await _context.Rooms
-                .AnyAsync(r => r.Id == updatedReservation.RoomId);
+            var room = await _context.Rooms
+                .FirstOrDefaultAsync(r => r.Id == updatedReservation.RoomId);
 
-            if (!roomExists)
+            if (room == null)
                 throw new ArgumentException("Room not found");
+
+            if (updatedReservation.CheckInDate >= updatedReservation.CheckOutDate)
+                throw new ArgumentException("Check-out date must be after check-in date.");
+
+            var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "Turkey Standard Time");
+
+            if (updatedReservation.CheckInDate.Date < turkeyTime.Date)
+                throw new ArgumentException("Check-in date cannot be in the past.");
+
+            var numberOfNights =
+                (updatedReservation.CheckOutDate - updatedReservation.CheckInDate).Days;
 
             var hasConflict = await _context.Reservations
                 .AnyAsync(r =>
@@ -116,6 +142,7 @@ namespace HotelBookingAPI.Services
             existing.RoomId = updatedReservation.RoomId;
             existing.CheckInDate = updatedReservation.CheckInDate;
             existing.CheckOutDate = updatedReservation.CheckOutDate;
+            existing.TotalPrice = room.Price * numberOfNights;
 
             await _context.SaveChangesAsync();
 

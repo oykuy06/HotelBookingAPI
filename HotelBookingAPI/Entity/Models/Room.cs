@@ -20,7 +20,7 @@ namespace HotelBookingAPI.Entity.Models
         [Range(1, 5)]
         public int Capacity { get; set; }
         [Required]
-        public double Price { get; set; }
+        public decimal Price { get; set; }
         [Required]
         public long HotelId { get; set; }
         public virtual Hotel Hotel { get; set; }

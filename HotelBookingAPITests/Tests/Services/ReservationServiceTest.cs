@@ -156,7 +156,7 @@ public class ReservationServiceTest
             RoomId = 1,
             CheckInDate = DateTime.Today,
             CheckOutDate = DateTime.Today.AddDays(3),
-            TotalPrice = 900,
+            TotalPrice = 0,
             Status = "Confirmed"
         };
 
@@ -165,7 +165,7 @@ public class ReservationServiceTest
 
         // Assert
         Assert.NotNull(result);
-        Assert.Equal(1, context.Reservations.Count());
+        Assert.Equal(900m, result.TotalPrice);
     }
 
     [Fact]
@@ -472,6 +472,63 @@ public class ReservationServiceTest
         // Act & Assert
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.UpdateReservationAsync(2, updatedReservation));
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_UpdatesTotalPrice()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(7),
+            TotalPrice = 600,
+            Status = "Confirmed"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(9)
+        };
+
+        // Act
+        var result = await service.UpdateReservationAsync(1, updatedReservation);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(1200m, result.TotalPrice);
     }
 
     [Fact]

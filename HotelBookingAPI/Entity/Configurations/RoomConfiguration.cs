@@ -12,6 +12,9 @@ namespace HotelBookingAPI.Entity.Configurations
             builder.HasIndex(r => new { r.HotelId, r.RoomNumber })
                    .IsUnique();
 
+            builder.Property(r => r.Price)
+                   .HasPrecision(18, 2);
+
             builder.HasMany(r => r.Reservations)
                    .WithOne(b => b.Room)
                    .HasForeignKey(b => b.RoomId)
