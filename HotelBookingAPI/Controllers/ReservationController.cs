@@ -1,9 +1,10 @@
-﻿using HotelBookingAPI.Dto.RequestDto;
-using HotelBookingAPI.Dto.ResponseDto;
+﻿
+using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -19,104 +20,155 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllReservations()
         {
             var reservations = await _reservationService.GetAllReservationsAsync();
 
-            var response = reservations.Select(r => new ReservationResponseDto
-            {
-                Id = r.Id,
-                UserId = r.UserId,
-                UserName = r.UserName,
-                RoomId = r.RoomId,
-                RoomName = r.RoomName,
-                CheckInDate = r.CheckInDate,
-                CheckOutDate = r.CheckOutDate,
-                TotalPrice = r.TotalPrice,
-                Status = r.Status
-            });
-
-            return Ok(response);
+            return Ok(reservations);
         }
 
         [HttpGet("{id:long}")]
-        [Authorize(Roles = "User,Admin")]
+        [Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> GetReservationById(long id)
         {
             var reservation = await _reservationService.GetReservationByIdAsync(id);
+
             if (reservation == null)
                 return NotFound(new { message = "Reservation not found" });
 
-            var dto = new ReservationResponseDto
-            {
-                Id = reservation.Id,
-                UserId = reservation.UserId,
-                UserName = reservation.UserName,
-                RoomId = reservation.RoomId,
-                RoomName = reservation.RoomName,
-                CheckInDate = reservation.CheckInDate,
-                CheckOutDate = reservation.CheckOutDate,
-                TotalPrice = reservation.TotalPrice,
-                Status = reservation.Status
-            };
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            return Ok(dto);
+            if (!long.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
+
+            var isAdmin = User.IsInRole("Admin") ||
+                          User.IsInRole("SuperAdmin");
+
+            if (!isAdmin && reservation.UserId != userId)
+                return Forbid();
+
+            return Ok(reservation);
         }
 
         [HttpPost]
-        [Authorize(Roles = "User,Admin")]
-        public async Task<IActionResult> CreateReservation([FromBody] ReservationDto dto)
+        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> CreateReservation(
+            [FromBody] CreateReservationDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+            if (dto.CheckInDate.Date < DateTime.Today)
+                return BadRequest(new
+                {
+                    message = "Check-in date cannot be in the past."
+                });
+
             if (dto.CheckInDate >= dto.CheckOutDate)
-                return BadRequest(new { message = "Check-in date must be before check-out date." });
+                return BadRequest(new
+                {
+                    message = "Check-in date must be before check-out date."
+                });
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!long.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
 
             var reservation = new Reservation
             {
+                UserId = userId,
                 RoomId = dto.RoomId,
-                UserId = dto.UserId,
                 CheckInDate = dto.CheckInDate,
                 CheckOutDate = dto.CheckOutDate,
-                TotalPrice = dto.TotalPrice,
-                Status = dto.Status
+                TotalPrice = 0,
+                Status = "Pending"
             };
 
-            var created = await _reservationService.CreateReservationAsync(reservation);
+            Reservation created;
 
-            var responseDto = new ReservationResponseDto
+            try
             {
-                Id = created.Id,
-                UserId = created.UserId,
-                UserName = created.User?.Username ?? "",
-                RoomId = created.RoomId,
-                RoomName = created.Room?.Name ?? "",
-                CheckInDate = created.CheckInDate,
-                CheckOutDate = created.CheckOutDate,
-                TotalPrice = created.TotalPrice,
-                Status = created.Status
-            };
+                created = await _reservationService.CreateReservationAsync(reservation);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
-            return CreatedAtAction(nameof(GetReservationById), new { id = created.Id }, responseDto);
+            var responseDto =
+                await _reservationService.GetReservationByIdAsync(created.Id);
+
+            return CreatedAtAction(
+                nameof(GetReservationById),
+                new { id = created.Id },
+                responseDto);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<IActionResult> UpdateReservation(long id, [FromBody] ReservationDto dto)
+        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        public async Task<IActionResult> UpdateReservation(
+            long id,
+            [FromBody] UpdateReservationDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var updated = await _reservationService.UpdateReservationAsync(id, new Reservation
+            if (dto.CheckInDate.Date < DateTime.Today)
+                return BadRequest(new
+                {
+                    message = "Check-in date cannot be in the past."
+                });
+
+            if (dto.CheckInDate >= dto.CheckOutDate)
+                return BadRequest(new
+                {
+                    message = "Check-in date must be before check-out date."
+                });
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!long.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
+
+            var existingReservation =
+                await _reservationService.GetReservationByIdAsync(id);
+
+            if (existingReservation == null)
+                return NotFound(new { message = "Reservation not found" });
+
+            var isAdmin = User.IsInRole("Admin") ||
+                          User.IsInRole("SuperAdmin");
+
+            if (!isAdmin && existingReservation.UserId != userId)
+                return Forbid();
+
+            Reservation? updated;
+
+            try
             {
-                RoomId = dto.RoomId,
-                UserId = dto.UserId,
-                CheckInDate = dto.CheckInDate,
-                CheckOutDate = dto.CheckOutDate,
-                TotalPrice = dto.TotalPrice,
-                Status = dto.Status
-            });
+                updated = await _reservationService.UpdateReservationAsync(
+                    id,
+                    new Reservation
+                    {
+                        RoomId = dto.RoomId,
+                        CheckInDate = dto.CheckInDate,
+                        CheckOutDate = dto.CheckOutDate
+                    });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
             if (updated == null)
                 return NotFound(new { message = "Reservation not found" });
@@ -125,10 +177,27 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "User,Admin")]
+        [Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> DeleteReservation(long id)
         {
+            var reservation = await _reservationService.GetReservationByIdAsync(id);
+
+            if (reservation == null)
+                return NotFound(new { message = "Reservation not found" });
+
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!long.TryParse(userIdClaim, out var userId))
+                return Unauthorized();
+
+            var isAdmin = User.IsInRole("Admin") ||
+                          User.IsInRole("SuperAdmin");
+
+            if (!isAdmin && reservation.UserId != userId)
+                return Forbid();
+
             var success = await _reservationService.DeleteReservationAsync(id);
+
             if (!success)
                 return NotFound(new { message = "Reservation not found" });
 
