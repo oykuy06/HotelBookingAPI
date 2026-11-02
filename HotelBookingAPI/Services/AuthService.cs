@@ -83,8 +83,10 @@ namespace HotelBookingAPI.Services
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(Environment.GetEnvironmentVariable("JWT_KEY")
-                ?? throw new Exception("JWT_KEY not found."));
+            var jwtKey = _configuration["Jwt:Key"]
+                ?? throw new InvalidOperationException("JWT signing key is not configured.");
+
+            var key = Encoding.UTF8.GetBytes(jwtKey);
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
