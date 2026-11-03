@@ -169,9 +169,6 @@ namespace HotelBookingAPI.Controllers
             if (user == null)
                 return NotFound();
 
-            if (user == null)
-                return NotFound();
-
             var response = new UserResponseDto
             {
                 Id = user.Id,

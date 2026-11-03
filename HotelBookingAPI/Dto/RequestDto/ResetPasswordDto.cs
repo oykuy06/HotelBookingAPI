@@ -8,7 +8,7 @@ namespace HotelBookingAPI.Dto.RequestDto
         public string Token { get; set; }
 
         [Required]
-        [MinLength(3)]
+        [StringLength(100, MinimumLength = 6)]
         public string NewPassword { get; set; }
     }
 }

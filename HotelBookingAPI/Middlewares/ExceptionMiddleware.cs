@@ -22,7 +22,7 @@ namespace HotelBookingAPI.Middlewares
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, ex.Message);
+                _logger.LogError(ex, "An unhandled exception occurred while processing the request.");
                 await HandleExceptionAsync(context, ex);
             }
         }
@@ -35,8 +35,7 @@ namespace HotelBookingAPI.Middlewares
             var response = new
             {
                 StatusCode = context.Response.StatusCode,
-                Message = "Internal Server Error. Please try again later",
-                Detail = ex.Message
+                Message = "Internal Server Error. Please try again later."
             };
 
             var json = JsonSerializer.Serialize(response); //object is converted to a JSON string.
