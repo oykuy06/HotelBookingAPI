@@ -72,7 +72,13 @@ namespace HotelBookingAPI.Services
             message.To.Add(new MailboxAddress("", email));
             message.Subject = "Password Reset Request";
 
-            var resetLink = $"https://frontend/reset-password?token={token}";
+            var resetPasswordUrl = _config["Frontend:ResetPasswordUrl"];
+
+            if (string.IsNullOrWhiteSpace(resetPasswordUrl))
+                throw new InvalidOperationException("Frontend reset password URL is not configured.");
+
+            var separator = resetPasswordUrl.Contains('?') ? "&" : "?";
+            var resetLink = $"{resetPasswordUrl}{separator}token={Uri.EscapeDataString(token)}";
             message.Body = new TextPart("html")
             {
                 Text = $"<p>To reset your password, click the link below:</p>" +
