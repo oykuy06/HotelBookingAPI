@@ -7,6 +7,7 @@
         public string UserName { get; set; }
         public long RoomId { get; set; }
         public string RoomName { get; set; }
+        public long HotelId { get; set; }
         public DateTime CheckInDate { get; set; }
         public DateTime CheckOutDate { get; set; }
         public decimal TotalPrice { get; set; }

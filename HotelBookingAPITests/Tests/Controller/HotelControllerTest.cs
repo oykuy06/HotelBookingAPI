@@ -1,4 +1,5 @@
 ﻿using HotelBookingAPI.Controllers;
+using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
@@ -112,6 +113,22 @@ namespace HotelBookingAPI.Tests.Controllers
         public async Task CreateHotel_ReturnsCreatedAtAction()
         {
             // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "10"),
+            new Claim(ClaimTypes.Role, "SuperAdmin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
             var hotel = new Hotel
             {
                 Id = 1,
@@ -126,7 +143,7 @@ namespace HotelBookingAPI.Tests.Controllers
                 .ReturnsAsync(hotel);
 
             // Act
-            var result = await _controller.CreateHotel(new HotelBookingAPI.Dto.RequestDto.HotelDto
+            var result = await _controller.CreateHotel(new HotelDto
             {
                 Name = "Created Hotel",
                 Description = "Desc",
@@ -431,6 +448,40 @@ namespace HotelBookingAPI.Tests.Controllers
             _hotelServiceMock.Verify(
                 s => s.DeleteHotelAsync(99),
                 Times.Never);
+        }
+
+        [Fact]
+        public async Task DeleteHotel_WhenHotelHasReservations_ReturnsConflict()
+        {
+            // Arrange
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(1))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 1,
+                    Name = "Test Hotel",
+                    Description = "Description",
+                    Address = "Ankara",
+                    Photo = "photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _hotelServiceMock
+                .Setup(s => s.DeleteHotelAsync(1))
+                .ThrowsAsync(new InvalidOperationException(
+                    "Hotel cannot be deleted because it has existing reservations."));
+
+            // Act
+            var result = await _controller.DeleteHotel(1);
+
+            // Assert
+            var conflictResult = Assert.IsType<ConflictObjectResult>(result);
+
+            Assert.NotNull(conflictResult.Value);
+
+            _hotelServiceMock.Verify(
+                s => s.DeleteHotelAsync(1),
+                Times.Once);
         }
     }
 }

@@ -182,5 +182,73 @@ namespace HotelBookingAPI.Tests.Services
             Assert.True(result);
             Assert.Empty(context.Hotels);
         }
+
+        [Fact]
+        public async Task DeleteHotelAsync_ShouldReturnFalse_WhenHotelNotFound()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var service = GetService(context);
+
+            // Act
+            var result = await service.DeleteHotelAsync(999);
+
+            // Assert
+            Assert.False(result);
+        }
+
+        [Fact]
+        public async Task DeleteHotelAsync_ShouldThrowException_WhenHotelHasReservations()
+        {
+            // Arrange
+            var context = GetDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Description",
+                Address = "Ankara",
+                Photo = "photo"
+            };
+
+            var room = new Room
+            {
+                Name = "Standard Room",
+                Description = "Description",
+                Photo = "room-photo",
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 1500,
+                Hotel = hotel
+            };
+
+            var user = new User
+            {
+                Username = "testuser",
+                Email = "test@example.com",
+                PasswordHash = "test-hash",
+                Role = "User"
+            };
+
+            var reservation = new Reservation
+            {
+                User = user,
+                Room = room,
+                CheckInDate = new DateTime(2026, 12, 1),
+                CheckOutDate = new DateTime(2026, 12, 5),
+                TotalPrice = 6000,
+                Status = "Confirmed"
+            };
+
+            context.Add(reservation);
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.DeleteHotelAsync(hotel.Id));
+        }
+
     }
 }

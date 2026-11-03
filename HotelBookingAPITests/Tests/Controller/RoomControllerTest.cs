@@ -197,6 +197,37 @@ public class RoomControllerTest
     }
 
     [Fact]
+    public async Task CreateRoom_SuperAdminWithoutHotelId_ReturnsBadRequest()
+    {
+        SetUser("SuperAdmin");
+
+        var dto = CreateRoomDto();
+        dto.HotelId = null;
+
+        var result = await _controller.CreateRoom(dto);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+
+        _roomServiceMock.Verify(
+            s => s.CreateRoomAsync(It.IsAny<Room>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task CreateRoom_HotelNotFound_ReturnsBadRequest()
+    {
+        SetUser("SuperAdmin");
+
+        _roomServiceMock
+            .Setup(s => s.CreateRoomAsync(It.IsAny<Room>()))
+            .ThrowsAsync(new ArgumentException("Hotel not found."));
+
+        var result = await _controller.CreateRoom(CreateRoomDto(99));
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
     public async Task UpdateRoom_AdminUpdatesOwnHotelRoom_ReturnsOk()
     {
         SetUser("Admin");
@@ -216,6 +247,37 @@ public class RoomControllerTest
         var result = await _controller.UpdateRoom(1, CreateRoomDto(1));
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task UpdateRoom_AdminWithoutHotelId_CanUpdateOwnHotelRoom()
+    {
+        SetUser("Admin");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1L);
+
+        _roomServiceMock
+            .Setup(s => s.GetRoomByIdAsync(1))
+            .ReturnsAsync(CreateRoomResponse(1));
+
+        _roomServiceMock
+            .Setup(s => s.UpdateRoomAsync(1, It.IsAny<Room>()))
+            .ReturnsAsync((long id, Room room) => room);
+
+        var dto = CreateRoomDto();
+        dto.HotelId = null;
+
+        var result = await _controller.UpdateRoom(1, dto);
+
+        Assert.IsType<OkObjectResult>(result);
+
+        _roomServiceMock.Verify(
+            s => s.UpdateRoomAsync(
+                1,
+                It.Is<Room>(r => r.HotelId == 1)),
+            Times.Once);
     }
 
     [Fact]
@@ -314,5 +376,34 @@ public class RoomControllerTest
         var result = await _controller.DeleteRoom(1);
 
         Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteRoom_RoomNotFound_ReturnsNotFound()
+    {
+        SetUser("SuperAdmin");
+
+        _roomServiceMock
+            .Setup(s => s.DeleteRoomAsync(99))
+            .ReturnsAsync(false);
+
+        var result = await _controller.DeleteRoom(99);
+
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task DeleteRoom_RoomHasReservations_ReturnsConflict()
+    {
+        SetUser("SuperAdmin");
+
+        _roomServiceMock
+            .Setup(s => s.DeleteRoomAsync(1))
+            .ThrowsAsync(new InvalidOperationException(
+                "Room cannot be deleted because it has existing reservations."));
+
+        var result = await _controller.DeleteRoom(1);
+
+        Assert.IsType<ConflictObjectResult>(result);
     }
 }

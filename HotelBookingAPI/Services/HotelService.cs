@@ -95,12 +95,24 @@ namespace HotelBookingAPI.Services
 
         public async Task<bool> DeleteHotelAsync(long id)
         {
-            var hotel = await _context.Hotels.FindAsync(id);
+            var hotel = await _context.Hotels
+                .Include(h => h.Rooms)
+                .ThenInclude(r => r.Reservations)
+                .FirstOrDefaultAsync(h => h.Id == id);
+
             if (hotel == null)
                 return false;
 
+            var hasReservations = hotel.Rooms
+                .Any(room => room.Reservations.Any());
+
+            if (hasReservations)
+                throw new InvalidOperationException(
+                    "Hotel cannot be deleted because it has existing reservations.");
+
             _context.Hotels.Remove(hotel);
             await _context.SaveChangesAsync();
+
             return true;
         }
     }

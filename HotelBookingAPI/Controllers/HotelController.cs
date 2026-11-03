@@ -85,7 +85,7 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> CreateHotel([FromBody] HotelDto dto)
         {
             if (!ModelState.IsValid)
@@ -180,12 +180,19 @@ namespace HotelBookingAPI.Controllers
                     return Forbid();
             }
 
-            var success = await _hotelService.DeleteHotelAsync(id);
+            try
+            {
+                var success = await _hotelService.DeleteHotelAsync(id);
 
-            if (!success)
-                return NotFound(new { message = "Hotel not found" });
+                if (!success)
+                    return NotFound(new { message = "Hotel not found" });
 
-            return Ok(new { message = "Hotel deleted successfully" });
+                return Ok(new { message = "Hotel deleted successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
         }
 

@@ -27,6 +27,15 @@ namespace HotelBookingAPI.Services
 
             var token = Guid.NewGuid().ToString();
 
+            var previousTokens = await _context.PasswordResets
+                .Where(t => t.UserId == userId && !t.IsUsed)
+                .ToListAsync();
+
+            foreach (var previousToken in previousTokens)
+            {
+                previousToken.IsUsed = true;
+            }
+
             var resetToken = new PasswordReset
             {
                 Token = token,
@@ -62,15 +71,20 @@ namespace HotelBookingAPI.Services
         public async Task SendResetEmailAsync(string email, string token)
         {
             var smtpHost = _config["Smtp:Host"];
-            var smtpPort = int.Parse(_config["Smtp:Port"]);
             var smtpUser = _config["Smtp:Username"];
             var smtpPass = _config["Smtp:Password"];
             var senderEmail = _config["Smtp:SenderEmail"];
 
-            var message = new MimeMessage();
-            message.From.Add(new MailboxAddress("Hotel Booking", senderEmail));
-            message.To.Add(new MailboxAddress("", email));
-            message.Subject = "Password Reset Request";
+            if (string.IsNullOrWhiteSpace(smtpHost) ||
+                string.IsNullOrWhiteSpace(smtpUser) ||
+                string.IsNullOrWhiteSpace(smtpPass) ||
+                string.IsNullOrWhiteSpace(senderEmail))
+            {
+                throw new InvalidOperationException("SMTP settings are incomplete.");
+            }
+
+            if (!int.TryParse(_config["Smtp:Port"], out var smtpPort))
+                throw new InvalidOperationException("SMTP port is not configured correctly.");
 
             var resetPasswordUrl = _config["Frontend:ResetPasswordUrl"];
 
@@ -79,6 +93,11 @@ namespace HotelBookingAPI.Services
 
             var separator = resetPasswordUrl.Contains('?') ? "&" : "?";
             var resetLink = $"{resetPasswordUrl}{separator}token={Uri.EscapeDataString(token)}";
+
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("Hotel Booking", senderEmail));
+            message.To.Add(new MailboxAddress("", email));
+            message.Subject = "Password Reset Request";
             message.Body = new TextPart("html")
             {
                 Text = $"<p>To reset your password, click the link below:</p>" +
@@ -87,7 +106,6 @@ namespace HotelBookingAPI.Services
 
             using (var client = new SmtpClient())
             {
-                // Security Connection (SSL/TLS)
                 await client.ConnectAsync(smtpHost, smtpPort, SecureSocketOptions.StartTls);
                 await client.AuthenticateAsync(smtpUser, smtpPass);
                 await client.SendAsync(message);

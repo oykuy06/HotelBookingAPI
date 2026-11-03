@@ -1,5 +1,6 @@
 ﻿
 using HotelBookingAPI.Dto.RequestDto;
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -13,10 +14,12 @@ namespace HotelBookingAPI.Controllers
     public class ReservationController : ControllerBase
     {
         private readonly IReservationService _reservationService;
+        private readonly IUserService _userService;
 
-        public ReservationController(IReservationService reservationService)
+        public ReservationController(IReservationService reservationService, IUserService userService)
         {
             _reservationService = reservationService;
+            _userService = userService;
         }
 
         [HttpGet]
@@ -24,6 +27,23 @@ namespace HotelBookingAPI.Controllers
         public async Task<IActionResult> GetAllReservations()
         {
             var reservations = await _reservationService.GetAllReservationsAsync();
+
+            if (User.IsInRole("Admin"))
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+                if (!long.TryParse(userIdClaim, out var userId))
+                    return Unauthorized();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (adminHotelId == null)
+                    return Forbid();
+
+                reservations = reservations
+                    .Where(r => r.HotelId == adminHotelId.Value)
+                    .ToList();
+            }
 
             return Ok(reservations);
         }
@@ -42,11 +62,17 @@ namespace HotelBookingAPI.Controllers
             if (!long.TryParse(userIdClaim, out var userId))
                 return Unauthorized();
 
-            var isAdmin = User.IsInRole("Admin") ||
-                          User.IsInRole("SuperAdmin");
+            if (User.IsInRole("Admin"))
+            {
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
-            if (!isAdmin && reservation.UserId != userId)
+                if (adminHotelId == null || reservation.HotelId != adminHotelId.Value)
+                    return Forbid();
+            }
+            else if (User.IsInRole("User") && reservation.UserId != userId)
+            {
                 return Forbid();
+            }
 
             return Ok(reservation);
         }
@@ -58,18 +84,6 @@ namespace HotelBookingAPI.Controllers
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-
-            if (dto.CheckInDate.Date < DateTime.Today)
-                return BadRequest(new
-                {
-                    message = "Check-in date cannot be in the past."
-                });
-
-            if (dto.CheckInDate >= dto.CheckOutDate)
-                return BadRequest(new
-                {
-                    message = "Check-in date must be before check-out date."
-                });
 
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -83,7 +97,7 @@ namespace HotelBookingAPI.Controllers
                 CheckInDate = dto.CheckInDate,
                 CheckOutDate = dto.CheckOutDate,
                 TotalPrice = 0,
-                Status = "Pending"
+                Status = ReservationStatus.Pending
             };
 
             Reservation created;
@@ -119,18 +133,6 @@ namespace HotelBookingAPI.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            if (dto.CheckInDate.Date < DateTime.Today)
-                return BadRequest(new
-                {
-                    message = "Check-in date cannot be in the past."
-                });
-
-            if (dto.CheckInDate >= dto.CheckOutDate)
-                return BadRequest(new
-                {
-                    message = "Check-in date must be before check-out date."
-                });
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!long.TryParse(userIdClaim, out var userId))
@@ -142,11 +144,17 @@ namespace HotelBookingAPI.Controllers
             if (existingReservation == null)
                 return NotFound(new { message = "Reservation not found" });
 
-            var isAdmin = User.IsInRole("Admin") ||
-                          User.IsInRole("SuperAdmin");
+            if (User.IsInRole("Admin"))
+            {
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
-            if (!isAdmin && existingReservation.UserId != userId)
+                if (adminHotelId == null || existingReservation.HotelId != adminHotelId.Value)
+                    return Forbid();
+            }
+            else if (User.IsInRole("User") && existingReservation.UserId != userId)
+            {
                 return Forbid();
+            }
 
             Reservation? updated;
 
@@ -190,18 +198,24 @@ namespace HotelBookingAPI.Controllers
             if (!long.TryParse(userIdClaim, out var userId))
                 return Unauthorized();
 
-            var isAdmin = User.IsInRole("Admin") ||
-                          User.IsInRole("SuperAdmin");
+            if (User.IsInRole("Admin"))
+            {
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
-            if (!isAdmin && reservation.UserId != userId)
+                if (adminHotelId == null || reservation.HotelId != adminHotelId.Value)
+                    return Forbid();
+            }
+            else if (User.IsInRole("User") && reservation.UserId != userId)
+            {
                 return Forbid();
+            }
 
             var success = await _reservationService.DeleteReservationAsync(id);
 
             if (!success)
                 return NotFound(new { message = "Reservation not found" });
 
-            return Ok(new { message = "Reservation deleted successfully" });
+            return Ok(new { message = "Reservation cancelled successfully" });
         }
     }
 }

@@ -95,7 +95,10 @@ namespace HotelBookingAPI.Services
             existingRoom.Capacity = room.Capacity;
             existingRoom.Price = room.Price;
             existingRoom.Description = room.Description;
-            existingRoom.Photo = room.Photo;
+            if (!string.IsNullOrWhiteSpace(room.Photo))
+            {
+                existingRoom.Photo = room.Photo;
+            }
 
             await _context.SaveChangesAsync();
 
@@ -105,12 +108,20 @@ namespace HotelBookingAPI.Services
 
         public async Task<bool> DeleteRoomAsync(long id)
         {
-            var room = await _context.Rooms.FindAsync(id);
+            var room = await _context.Rooms
+                .Include(r => r.Reservations)
+                .FirstOrDefaultAsync(r => r.Id == id);
+
             if (room == null)
                 return false;
 
+            if (room.Reservations.Any())
+                throw new InvalidOperationException(
+                    "Room cannot be deleted because it has existing reservations.");
+
             _context.Rooms.Remove(room);
             await _context.SaveChangesAsync();
+
             return true;
         }
     }

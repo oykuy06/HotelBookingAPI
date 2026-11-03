@@ -25,6 +25,7 @@ namespace HotelBookingAPI.Services
                     UserId = r.UserId,
                     UserName = r.User.Username,
                     RoomId = r.RoomId,
+                    HotelId = r.Room.HotelId,
                     RoomName = r.Room.Name,
                     CheckInDate = r.CheckInDate,
                     CheckOutDate = r.CheckOutDate,
@@ -45,6 +46,7 @@ namespace HotelBookingAPI.Services
                     UserId = r.UserId,
                     UserName = r.User.Username,
                     RoomId = r.RoomId,
+                    HotelId = r.Room.HotelId,
                     RoomName = r.Room.Name,
                     CheckInDate = r.CheckInDate,
                     CheckOutDate = r.CheckOutDate,
@@ -68,15 +70,9 @@ namespace HotelBookingAPI.Services
             if (room == null)
                 throw new ArgumentException("Room not found");
 
-            if (reservation.CheckInDate.Date >= reservation.CheckOutDate.Date)
-                throw new ArgumentException("Check-out date must be after check-in date.");
-
-            var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-    DateTime.UtcNow,
-    "Europe/Istanbul");
-
-            if (reservation.CheckInDate.Date < turkeyTime.Date)
-                throw new ArgumentException("Check-in date cannot be in the past.");
+            ValidateReservationDates(
+                reservation.CheckInDate,
+                reservation.CheckOutDate);
 
             var numberOfNights =
                 (reservation.CheckOutDate.Date - reservation.CheckInDate.Date).Days;
@@ -86,9 +82,9 @@ namespace HotelBookingAPI.Services
             var hasConflict = await _context.Reservations
                 .AnyAsync(r =>
                     r.RoomId == reservation.RoomId &&
-                    r.Status != "Cancelled" &&
-                    reservation.CheckInDate < r.CheckOutDate &&
-                    reservation.CheckOutDate > r.CheckInDate);
+                    r.Status != ReservationStatus.Cancelled &&
+                    reservation.CheckInDate.Date < r.CheckOutDate.Date &&
+                    reservation.CheckOutDate.Date > r.CheckInDate.Date);
 
             if (hasConflict)
                 throw new InvalidOperationException(
@@ -102,8 +98,8 @@ namespace HotelBookingAPI.Services
         }
 
         public async Task<Reservation?> UpdateReservationAsync(
-    long id,
-    Reservation updatedReservation)
+            long id,
+            Reservation updatedReservation)
         {
             var existing = await _context.Reservations.FindAsync(id);
 
@@ -116,15 +112,9 @@ namespace HotelBookingAPI.Services
             if (room == null)
                 throw new ArgumentException("Room not found");
 
-            if (updatedReservation.CheckInDate.Date >= updatedReservation.CheckOutDate.Date)
-                throw new ArgumentException("Check-out date must be after check-in date.");
-
-            var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-                DateTime.UtcNow,
-                "Turkey Standard Time");
-
-            if (updatedReservation.CheckInDate.Date < turkeyTime.Date)
-                throw new ArgumentException("Check-in date cannot be in the past.");
+            ValidateReservationDates(
+                updatedReservation.CheckInDate,
+                updatedReservation.CheckOutDate);
 
             var numberOfNights =
                 (updatedReservation.CheckOutDate.Date - updatedReservation.CheckInDate.Date).Days;
@@ -133,9 +123,9 @@ namespace HotelBookingAPI.Services
                 .AnyAsync(r =>
                     r.Id != id &&
                     r.RoomId == updatedReservation.RoomId &&
-                    r.Status != "Cancelled" &&
-                    updatedReservation.CheckInDate < r.CheckOutDate &&
-                    updatedReservation.CheckOutDate > r.CheckInDate);
+                    r.Status != ReservationStatus.Cancelled &&
+                    updatedReservation.CheckInDate.Date < r.CheckOutDate.Date &&
+                    updatedReservation.CheckOutDate.Date > r.CheckInDate.Date);
 
             if (hasConflict)
                 throw new InvalidOperationException(
@@ -154,12 +144,31 @@ namespace HotelBookingAPI.Services
         public async Task<bool> DeleteReservationAsync(long id)
         {
             var reservation = await _context.Reservations.FindAsync(id);
+
             if (reservation == null)
                 return false;
 
-            _context.Reservations.Remove(reservation);
+            reservation.Status = ReservationStatus.Cancelled;
+
             await _context.SaveChangesAsync();
+
             return true;
+        }
+        private static void ValidateReservationDates(
+            DateTime checkInDate,
+            DateTime checkOutDate)
+        {
+            if (checkInDate.Date >= checkOutDate.Date)
+                throw new ArgumentException(
+                    "Check-out date must be after check-in date.");
+
+            var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                DateTime.UtcNow,
+                "Europe/Istanbul");
+
+            if (checkInDate.Date < turkeyTime.Date)
+                throw new ArgumentException(
+                    "Check-in date cannot be in the past.");
         }
     }
 }

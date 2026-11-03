@@ -73,6 +73,15 @@ namespace HotelBookingAPI.Services
 
         public async Task<User> CreateUserAsync(string email, string password, string role = UserRoles.User)
         {
+
+            email = email.Trim().ToLowerInvariant();
+
+            var emailExists = await _context.Users
+                .AnyAsync(u => u.Email == email);
+
+            if (emailExists)
+                throw new InvalidOperationException("Email is already registered.");
+
             var user = new User
             {
                 Email = email,
@@ -94,12 +103,29 @@ namespace HotelBookingAPI.Services
             if (user == null)
                 return null;
 
+            email = email.Trim().ToLowerInvariant();
+
+            var emailExists = await _context.Users
+                .AnyAsync(u => u.Email == email && u.Id != id);
+
+            if (emailExists)
+                throw new InvalidOperationException("Email is already registered.");
+
             user.Email = email;
             user.Username = email.Split('@')[0];
 
-            if (!string.IsNullOrEmpty(password))
+            if (!string.IsNullOrWhiteSpace(password))
             {
                 user.PasswordHash = _passwordHashService.HashPassword(password);
+
+                var activeRefreshTokens = await _context.RefreshTokens
+                    .Where(t => t.UserId == user.Id && !t.IsRevoked)
+                    .ToListAsync();
+
+                foreach (var refreshToken in activeRefreshTokens)
+                {
+                    refreshToken.IsRevoked = true;
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(role))
@@ -128,6 +154,7 @@ namespace HotelBookingAPI.Services
             }
             catch (DbUpdateException)
             {
+                _context.Entry(user).State = EntityState.Unchanged;
                 return false;
             }
         }

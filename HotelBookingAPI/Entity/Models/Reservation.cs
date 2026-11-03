@@ -25,6 +25,6 @@ namespace HotelBookingAPI.Entity.Models
 
         [Required]
         [StringLength(20)]
-        public string Status { get; set; } = "Pending"; // Pending, Confirmed, Cancelled
+        public string Status { get; set; } = ReservationStatus.Pending;
     }
 }

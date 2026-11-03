@@ -2,10 +2,12 @@
 using HotelBookingAPI.Constants;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
+using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using HotelBookingAPI.Entity;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -81,20 +83,27 @@ namespace HotelBookingAPI.Controllers
                 return Forbid();
             }
 
-            var user = await _userService.CreateUserAsync(
-                dto.Email, dto.Password, normalizedRole);
-
-            var response = new UserResponseDto
+            try
             {
-                Id = user.Id,
-                Email = user.Email,
-                Role = user.Role
-            };
+                var user = await _userService.CreateUserAsync(
+                    dto.Email, dto.Password, normalizedRole);
 
-            return CreatedAtAction(
-                nameof(GetUser),
-                new { id = user.Id },
-                response);
+                var response = new UserResponseDto
+                {
+                    Id = user.Id,
+                    Email = user.Email,
+                    Role = user.Role
+                };
+
+                return CreatedAtAction(
+                    nameof(GetUser),
+                    new { id = user.Id },
+                    response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
 
         [HttpPut("{id:long}")]
@@ -145,8 +154,20 @@ namespace HotelBookingAPI.Controllers
             // Normal kullanıcı kendi rolünü değiştiremez.
             var role = isAdmin ? normalizedRole : null;
 
-            var user = await _userService.UpdateUserAsync(
-                id, dto.Email, dto.Password, role);
+            User? user;
+
+            try
+            {
+                user = await _userService.UpdateUserAsync(
+                    id, dto.Email, dto.Password, role);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
+
+            if (user == null)
+                return NotFound();
 
             if (user == null)
                 return NotFound();

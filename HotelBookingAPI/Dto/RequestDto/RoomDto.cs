@@ -8,8 +8,7 @@ namespace HotelBookingAPI.Dto.RequestDto
         [Required]
         [StringLength(50)]
         public string Name { get; set; }
-        [Required]
-        public long HotelId { get; set; }
+        public long? HotelId { get; set; }
         [Required]
         public int RoomNumber { get; set; }
         [Required]

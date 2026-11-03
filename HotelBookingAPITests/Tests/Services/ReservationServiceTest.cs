@@ -215,7 +215,12 @@ public class ReservationServiceTest
 
         // Assert
         Assert.True(result);
-        Assert.Empty(context.Reservations);
+
+        var cancelledReservation = await context.Reservations
+            .FirstOrDefaultAsync(r => r.Id == 5);
+
+        Assert.NotNull(cancelledReservation);
+        Assert.Equal("Cancelled", cancelledReservation.Status);
     }
 
     [Fact]
@@ -350,7 +355,7 @@ public class ReservationServiceTest
     }
 
     [Fact]
-    public async Task CreateReservationAsync_AllowsReservation_WhenPreviousReservationIsCancelled()
+    public async Task CreateReservationAsync_ShouldThrowException_WhenRoomIsAlreadyBooked()
     {
         // Arrange
         var context = GetDbContext();
@@ -384,7 +389,7 @@ public class ReservationServiceTest
             CheckInDate = DateTime.Today.AddDays(5),
             CheckOutDate = DateTime.Today.AddDays(10),
             TotalPrice = 1500,
-            Status = "Cancelled"
+            Status = "Confirmed"
         });
 
         await context.SaveChangesAsync();
@@ -397,7 +402,64 @@ public class ReservationServiceTest
             RoomId = 1,
             CheckInDate = DateTime.Today.AddDays(7),
             CheckOutDate = DateTime.Today.AddDays(12),
+            Status = "Pending"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.CreateReservationAsync(newReservation));
+    }
+
+    [Fact]
+    public async Task CreateReservationAsync_AllowsReservation_WhenPreviousReservationEndsOnCheckInDate()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        var checkOut = DateTime.Today.AddDays(10);
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = checkOut,
             TotalPrice = 1500,
+            Status = "Confirmed"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var newReservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = checkOut,
+            CheckOutDate = checkOut.AddDays(3),
             Status = "Pending"
         };
 
@@ -407,6 +469,239 @@ public class ReservationServiceTest
         // Assert
         Assert.NotNull(result);
         Assert.Equal(2, await context.Reservations.CountAsync());
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_ShouldThrowException_WhenUpdatedDatesOverlapWithAnotherReservation()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        context.Reservations.AddRange(
+            new Reservation
+            {
+                Id = 1,
+                UserId = 1,
+                RoomId = 1,
+                CheckInDate = DateTime.Today.AddDays(5),
+                CheckOutDate = DateTime.Today.AddDays(8),
+                TotalPrice = 900,
+                Status = "Confirmed"
+            },
+            new Reservation
+            {
+                Id = 2,
+                UserId = 1,
+                RoomId = 1,
+                CheckInDate = DateTime.Today.AddDays(10),
+                CheckOutDate = DateTime.Today.AddDays(13),
+                TotalPrice = 900,
+                Status = "Confirmed"
+            });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(7),
+            CheckOutDate = DateTime.Today.AddDays(11),
+            Status = "Confirmed"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.UpdateReservationAsync(2, updatedReservation));
+    }
+
+    [Fact]
+    public async Task DeleteReservationAsync_ReturnsTrue_WhenAlreadyCancelled()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(8),
+            TotalPrice = 900,
+            Status = ReservationStatus.Cancelled
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        // Act
+        var result = await service.DeleteReservationAsync(1);
+
+        // Assert
+        Assert.True(result);
+
+        var reservation = await context.Reservations.FindAsync(1L);
+        Assert.NotNull(reservation);
+        Assert.Equal(ReservationStatus.Cancelled, reservation.Status);
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_AllowsUpdate_WhenOverlappingReservationIsCancelled()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        context.Reservations.AddRange(
+            new Reservation
+            {
+                Id = 1,
+                UserId = 1,
+                RoomId = 1,
+                CheckInDate = DateTime.Today.AddDays(5),
+                CheckOutDate = DateTime.Today.AddDays(10),
+                TotalPrice = 1500,
+                Status = ReservationStatus.Cancelled
+            },
+            new Reservation
+            {
+                Id = 2,
+                UserId = 1,
+                RoomId = 1,
+                CheckInDate = DateTime.Today.AddDays(15),
+                CheckOutDate = DateTime.Today.AddDays(18),
+                TotalPrice = 900,
+                Status = ReservationStatus.Confirmed
+            });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(7),
+            CheckOutDate = DateTime.Today.AddDays(11),
+            Status = ReservationStatus.Confirmed
+        };
+
+        // Act
+        var result = await service.UpdateReservationAsync(2, updatedReservation);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(DateTime.Today.AddDays(7), result.CheckInDate);
+        Assert.Equal(DateTime.Today.AddDays(11), result.CheckOutDate);
+    }
+
+    [Fact]
+    public async Task UpdateReservationAsync_AllowsUpdate_WhenDatesOverlapWithItself()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        var checkIn = DateTime.Today.AddDays(10);
+        var checkOut = DateTime.Today.AddDays(13);
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = checkIn,
+            CheckOutDate = checkOut,
+            TotalPrice = 900,
+            Status = "Confirmed"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = checkIn.AddDays(1),
+            CheckOutDate = checkOut.AddDays(1),
+            Status = "Confirmed"
+        };
+
+        // Act
+        var result = await service.UpdateReservationAsync(1, updatedReservation);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(checkIn.AddDays(1), result.CheckInDate);
+        Assert.Equal(checkOut.AddDays(1), result.CheckOutDate);
     }
 
     [Fact]

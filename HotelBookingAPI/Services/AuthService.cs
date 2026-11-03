@@ -34,7 +34,7 @@ namespace HotelBookingAPI.Services
 
         public async Task<User?> RegisterAsync(RegisterDto dto)
         {
-            var email = dto.Email.ToLower(); 
+            var email = dto.Email.ToLowerInvariant();
 
             if (await _context.Users.AnyAsync(u => u.Email == email))
                 return null;
@@ -55,7 +55,7 @@ namespace HotelBookingAPI.Services
 
         public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
         {
-            var email = dto.Email.ToLower();
+            var email = dto.Email.ToLowerInvariant();
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
             if (user == null || !_passwordHashService.VerifyPassword(dto.Password, user.PasswordHash))
@@ -68,7 +68,8 @@ namespace HotelBookingAPI.Services
             {
                 Token = refreshToken,
                 UserId = user.Id,
-                Expiration = DateTime.UtcNow.AddDays(_configuration.GetValue<int>("Jwt:RefreshTokenExpiresInDays"))
+                Expiration = DateTime.UtcNow.AddDays(
+                     _configuration.GetValue<int>("Jwt:RefreshTokenExpiresInDays", 7))
             });
 
             await _context.SaveChangesAsync();
@@ -84,8 +85,10 @@ namespace HotelBookingAPI.Services
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var jwtKey = _configuration["Jwt:Key"]
-                ?? throw new InvalidOperationException("JWT signing key is not configured.");
+            var jwtKey = _configuration["Jwt:Key"];
+
+            if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+                throw new InvalidOperationException("JWT signing key must be at least 32 bytes long."); 
 
             var key = Encoding.UTF8.GetBytes(jwtKey);
 
@@ -150,7 +153,10 @@ namespace HotelBookingAPI.Services
 
         public async Task<string?> ForgotPasswordAsync(string email)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            var normalizedEmail = email.ToLowerInvariant();
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == normalizedEmail);
             if (user == null)
                 return null;
 
@@ -167,6 +173,14 @@ namespace HotelBookingAPI.Services
                 return false;
 
             user.PasswordHash = _passwordHashService.HashPassword(newPassword);
+            var activeRefreshTokens = await _context.RefreshTokens
+                .Where(t => t.UserId == user.Id && !t.IsRevoked)
+                .ToListAsync();
+
+            foreach (var refreshToken in activeRefreshTokens)
+            {
+                refreshToken.IsRevoked = true;
+            }
             await _context.SaveChangesAsync();
 
             return true;

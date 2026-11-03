@@ -98,6 +98,9 @@ namespace HotelBookingAPI.Controllers
             }
             else
             {
+                if (dto.HotelId == null)
+                    return BadRequest(new { message = "HotelId is required for SuperAdmin." });
+
                 hotelId = dto.HotelId;
             }
 
@@ -112,7 +115,16 @@ namespace HotelBookingAPI.Controllers
                 Photo = dto.Photo
             };
 
-            var createdRoom = await _roomService.CreateRoomAsync(room);
+            Room createdRoom;
+
+            try
+            {
+                createdRoom = await _roomService.CreateRoomAsync(room);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
 
             var responseDto = new RoomResponseDto
             {
@@ -164,7 +176,7 @@ namespace HotelBookingAPI.Controllers
                 if (adminHotelId == null || existingRoom.HotelId != adminHotelId)
                     return Forbid();
 
-                if (dto.HotelId != adminHotelId)
+                if (dto.HotelId.HasValue && dto.HotelId.Value != adminHotelId)
                     return Forbid();
             }
 
@@ -211,12 +223,19 @@ namespace HotelBookingAPI.Controllers
                     return Forbid();
             }
 
-            var success = await _roomService.DeleteRoomAsync(id);
+            try
+            {
+                var success = await _roomService.DeleteRoomAsync(id);
 
-            if (!success)
-                return NotFound(new { message = "Room not found" });
+                if (!success)
+                    return NotFound(new { message = "Room not found" });
 
-            return Ok(new { message = "Room deleted successfully" });
+                return Ok(new { message = "Room deleted successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
         }
     }
 }
