@@ -9,7 +9,7 @@ namespace HotelBookingAPI.Services.Interfaces
         Task<User?> RegisterAsync(RegisterDto dto);
         Task<string?> ForgotPasswordAsync(string email);
         Task<bool> ResetPasswordAsync(string token, string newPassword);
-        Task<string?> RefreshAccessTokenAsync(string refreshToken);
+        Task<AuthResponseDto?> RefreshAccessTokenAsync(string refreshToken);
         Task<AuthResponseDto?> LoginAsync(LoginDto dto); 
     }
 }

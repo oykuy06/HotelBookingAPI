@@ -104,7 +104,7 @@ namespace HotelBookingAPI.Tests.Controllers
         {
             _authServiceMock
                 .Setup(x => x.RefreshAccessTokenAsync("invalid"))
-                .ReturnsAsync((string?)null);
+                .ReturnsAsync((AuthResponseDto?)null);
 
             var result = await _controller.RefreshToken("invalid");
 
@@ -116,7 +116,11 @@ namespace HotelBookingAPI.Tests.Controllers
         {
             _authServiceMock
                 .Setup(x => x.RefreshAccessTokenAsync("valid"))
-                .ReturnsAsync("newAccessToken");
+                .ReturnsAsync(new AuthResponseDto
+                {
+                    AccessToken = "newAccessToken",
+                    RefreshToken = "newRefreshToken"
+                });
 
             var result = await _controller.RefreshToken("valid");
 

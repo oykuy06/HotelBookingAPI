@@ -63,12 +63,12 @@ namespace HotelBookingAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
         {
-            var newAccessToken = await _authService.RefreshAccessTokenAsync(refreshToken);
+            var authResponse = await _authService.RefreshAccessTokenAsync(refreshToken);
 
-            if (newAccessToken == null)
+            if (authResponse == null)
                 return Unauthorized(new { message = "Invalid or expired refresh token" });
 
-            return Ok(new { accessToken = newAccessToken });
+            return Ok(authResponse);
         }
     }
 }

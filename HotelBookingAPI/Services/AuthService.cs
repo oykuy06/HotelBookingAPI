@@ -112,7 +112,7 @@ namespace HotelBookingAPI.Services
         }
 
         // If Refresh Token is valid, generate new Access Token
-        public async Task<string?> RefreshAccessTokenAsync(string refreshToken)
+        public async Task<AuthResponseDto?> RefreshAccessTokenAsync(string refreshToken)
         {
             var storedToken = await _context.RefreshTokens
                 .Include(t => t.User)
@@ -141,7 +141,11 @@ namespace HotelBookingAPI.Services
             _context.RefreshTokens.Add(newRefreshToken);
             await _context.SaveChangesAsync();
 
-            return newAccessToken;
+            return new AuthResponseDto
+            {
+                AccessToken = newAccessToken,
+                RefreshToken = newRefreshToken.Token
+            };
         }
 
         public async Task<string?> ForgotPasswordAsync(string email)
