@@ -26,7 +26,7 @@ jobs:
       run: dotnet build ./HotelBookingAPI/HotelBookingAPI.csproj --no-restore
 
     - name: Run tests
-      run: dotnet test ./HotelBookingAPI/HotelBookingAPI.csproj --no-restore --verbosity normal
+     run: dotnet test ./HotelBookingAPITests/HotelBookingAPITests.csproj --no-restore --verbosity normal
 
   deploy-local:
     runs-on: ubuntu-latest
