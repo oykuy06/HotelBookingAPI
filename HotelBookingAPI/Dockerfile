@@ -8,7 +8,7 @@ RUN dotnet restore
 
 # Proje dosyalarını kopyala
 COPY . .
-RUN dotnet publish HotelBookingAPI.csproj -c Release -o out
+RUN dotnet publish HotelBookingAPI.csproj -c Release -o out --no-restore
 
 # 2. Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0

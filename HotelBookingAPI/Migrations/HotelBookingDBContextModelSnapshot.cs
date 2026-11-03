@@ -63,7 +63,7 @@ namespace HotelBookingAPI.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Hotels");
+                    b.ToTable("Hotels", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.PasswordReset", b =>
@@ -101,7 +101,7 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasswordResets");
+                    b.ToTable("PasswordResets", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.RefreshToken", b =>
@@ -129,7 +129,7 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("RefreshTokens", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.Reservation", b =>
@@ -175,7 +175,7 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Reservations");
+                    b.ToTable("Reservations", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.Room", b =>
@@ -227,7 +227,7 @@ namespace HotelBookingAPI.Migrations
                     b.HasIndex("HotelId", "RoomNumber")
                         .IsUnique();
 
-                    b.ToTable("Rooms");
+                    b.ToTable("Rooms", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.User", b =>
@@ -275,7 +275,7 @@ namespace HotelBookingAPI.Migrations
 
                     b.HasIndex("HotelId");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("HotelBookingAPI.Entity.Models.PasswordReset", b =>

@@ -61,6 +61,10 @@ namespace HotelBookingAPI.Entity
                 .WithMany(h => h.Admins)
                 .HasForeignKey(u => u.HotelId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<Reservation>()
+                .Property(r => r.TotalPrice)
+                .HasPrecision(18, 2);
         }
 
     }
