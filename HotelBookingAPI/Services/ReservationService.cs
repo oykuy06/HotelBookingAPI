@@ -72,8 +72,8 @@ namespace HotelBookingAPI.Services
                 throw new ArgumentException("Check-out date must be after check-in date.");
 
             var turkeyTime = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
-                DateTime.UtcNow,
-                "Turkey Standard Time");
+    DateTime.UtcNow,
+    "Europe/Istanbul");
 
             if (reservation.CheckInDate.Date < turkeyTime.Date)
                 throw new ArgumentException("Check-in date cannot be in the past.");
