@@ -166,4 +166,53 @@ public class AuthServiceTest
         // Assert
         Assert.Null(result);
     }
+
+
+    [Fact]
+    public async Task LoginAsync_LegacyPasswordHash_ShouldRehashPassword()
+    {
+        // Arrange
+        var user = new User
+        {
+            Email = "legacy@test.com",
+            Username = "legacyuser",
+            PasswordHash = "legacy_hash",
+            Role = "User"
+        };
+
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+
+        _passwordHashServiceMock
+            .Setup(x => x.VerifyPassword("123456", "legacy_hash"))
+            .Returns(true);
+
+        _passwordHashServiceMock
+            .Setup(x => x.NeedsRehash("legacy_hash"))
+            .Returns(true);
+
+        _passwordHashServiceMock
+            .Setup(x => x.HashPassword("123456"))
+            .Returns("pbkdf2-sha256$600000$new_salt$new_hash");
+
+        var dto = new LoginDto
+        {
+            Email = "legacy@test.com",
+            Password = "123456"
+        };
+
+        // Act
+        var result = await _authService.LoginAsync(dto);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(
+            "pbkdf2-sha256$600000$new_salt$new_hash",
+            user.PasswordHash);
+
+        _passwordHashServiceMock.Verify(
+            x => x.HashPassword("123456"),
+            Times.Once);
+    }
+
 }

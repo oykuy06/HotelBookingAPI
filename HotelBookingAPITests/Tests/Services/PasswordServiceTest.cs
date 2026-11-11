@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Entity;
+﻿
+using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
 using Microsoft.EntityFrameworkCore;
@@ -66,7 +67,7 @@ public class PasswordServiceTest
     }
 
     [Fact]
-    public async Task ValidateUserTokenAsync_ValidToken_ReturnsUser()
+    public async Task GetValidResetTokenAsync_ValidToken_ReturnsTokenWithoutConsumingIt()
     {
         // Arrange
         var user = new User
@@ -92,18 +93,19 @@ public class PasswordServiceTest
         await _context.SaveChangesAsync();
 
         // Act
-        var result = await _passwordService.ValidateUserTokenAsync("valid-token");
+        var result = await _passwordService.GetValidResetTokenAsync("valid-token");
 
         // Assert
         Assert.NotNull(result);
-        Assert.True(reset.IsUsed);
+        Assert.Equal(user.Id, result.User.Id);
+        Assert.False(reset.IsUsed);
     }
 
     [Fact]
-    public async Task ValidateUserTokenAsync_InvalidToken_ReturnsNull()
+    public async Task GetValidResetTokenAsync_InvalidToken_ReturnsNull()
     {
         // Act
-        var result = await _passwordService.ValidateUserTokenAsync("invalid-token");
+        var result = await _passwordService.GetValidResetTokenAsync("invalid-token");
 
         // Assert
         Assert.Null(result);

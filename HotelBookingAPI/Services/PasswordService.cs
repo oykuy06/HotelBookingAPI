@@ -50,22 +50,14 @@ namespace HotelBookingAPI.Services
             return token;
         }
 
-        public async Task<User?> ValidateUserTokenAsync(string token)
+        public async Task<PasswordReset?> GetValidResetTokenAsync(string token)
         {
-            var resetToken = await _context.PasswordResets
+            return await _context.PasswordResets
                 .Include(t => t.User)
                 .FirstOrDefaultAsync(t =>
                     t.Token == token &&
                     !t.IsUsed &&
                     t.Expiration > DateTime.UtcNow);
-
-            if (resetToken == null)
-                return null;
-
-            resetToken.IsUsed = true;
-            await _context.SaveChangesAsync();
-
-            return resetToken.User;
         }
 
         public async Task SendResetEmailAsync(string email, string token)

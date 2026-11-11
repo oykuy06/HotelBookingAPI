@@ -26,9 +26,14 @@ builder.Services.AddCors(options =>
 // ============================
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 
-var jwtKey = builder.Configuration["Jwt:Key"]
-             ?? throw new InvalidOperationException(
-                 "JWT signing key is not configured.");
+var jwtKey = builder.Configuration["Jwt:Key"];
+
+if (string.IsNullOrWhiteSpace(jwtKey) ||
+    Encoding.UTF8.GetByteCount(jwtKey) < 32)
+{
+    throw new InvalidOperationException(
+        "JWT signing key must be configured and at least 32 bytes long.");
+}
 
 builder.Services.AddAuthentication(options =>
 {

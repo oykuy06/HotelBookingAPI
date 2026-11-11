@@ -61,6 +61,12 @@ namespace HotelBookingAPI.Services
             if (user == null || !_passwordHashService.VerifyPassword(dto.Password, user.PasswordHash))
                 return null;
 
+            if (_passwordHashService.NeedsRehash(user.PasswordHash))
+            {
+                user.PasswordHash = _passwordHashService.HashPassword(dto.Password);
+                await _context.SaveChangesAsync();
+            }
+
             var accessToken = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
 
@@ -168,19 +174,23 @@ namespace HotelBookingAPI.Services
 
         public async Task<bool> ResetPasswordAsync(string token, string newPassword)
         {
-            var user = await _passwordService.ValidateUserTokenAsync(token);
-            if (user == null)
+            var resetToken = await _passwordService.GetValidResetTokenAsync(token);
+
+            if (resetToken == null)
                 return false;
 
-            user.PasswordHash = _passwordHashService.HashPassword(newPassword);
+            resetToken.User.PasswordHash = _passwordHashService.HashPassword(newPassword);
+            resetToken.IsUsed = true;
+
             var activeRefreshTokens = await _context.RefreshTokens
-                .Where(t => t.UserId == user.Id && !t.IsRevoked)
+                .Where(t => t.UserId == resetToken.User.Id && !t.IsRevoked)
                 .ToListAsync();
 
             foreach (var refreshToken in activeRefreshTokens)
             {
                 refreshToken.IsRevoked = true;
             }
+
             await _context.SaveChangesAsync();
 
             return true;

@@ -39,6 +39,11 @@ namespace HotelBookingAPI.Tests.Services
             {
                 return passwordHash == "hashed_" + password;
             }
+
+            public bool NeedsRehash(string passwordHash)
+            {
+                return false;
+            }
         }
 
         [Fact]
