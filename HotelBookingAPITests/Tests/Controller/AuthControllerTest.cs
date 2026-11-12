@@ -126,5 +126,53 @@ namespace HotelBookingAPI.Tests.Controllers
 
             Assert.IsType<OkObjectResult>(result);
         }
+
+        [Fact]
+        public async Task ForgotPassword_UserExists_ReturnsOk()
+        {
+            // Arrange
+            var dto = new ForgotPasswordDto
+            {
+                Email = "user@test.com"
+            };
+
+            _authServiceMock
+                .Setup(s => s.ForgotPasswordAsync(dto.Email))
+                .ReturnsAsync("reset-token");
+
+            // Act
+            var result = await _controller.ForgotPassword(dto);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+
+            _authServiceMock.Verify(
+                s => s.ForgotPasswordAsync(dto.Email),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task ForgotPassword_UserDoesNotExist_ReturnsOk()
+        {
+            // Arrange
+            var dto = new ForgotPasswordDto
+            {
+                Email = "unknown@test.com"
+            };
+
+            _authServiceMock
+                .Setup(s => s.ForgotPasswordAsync(dto.Email))
+                .ReturnsAsync((string?)null);
+
+            // Act
+            var result = await _controller.ForgotPassword(dto);
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+
+            _authServiceMock.Verify(
+                s => s.ForgotPasswordAsync(dto.Email),
+                Times.Once);
+        }
     }
 }

@@ -181,6 +181,7 @@ namespace HotelBookingAPI.Tests.Services
             // Assert
             Assert.True(result);
             Assert.Empty(context.Hotels);
+            Assert.Empty(context.Rooms);
         }
 
         [Fact]

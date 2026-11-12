@@ -1,15 +1,18 @@
 ﻿
-using Xunit;
-using Moq;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
+using HotelBookingAPI.Constants;
 using HotelBookingAPI.Controllers;
-using HotelBookingAPI.Services.Interfaces;
+using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
-using System.Security.Claims;
+using HotelBookingAPI.Entity.Models;
+using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using Xunit;
 
 public class UserControllerTest
 {
@@ -113,8 +116,12 @@ public class UserControllerTest
         };
 
         _userServiceMock
-            .Setup(s => s.GetAllUsersAsync())
-            .ReturnsAsync(users);
+    .Setup(s => s.GetAllUsersAsync(It.IsAny<long?>()))
+    .ReturnsAsync(users);
+
+        _userServiceMock
+    .Setup(s => s.GetHotelIdByUserIdAsync(1))
+    .ReturnsAsync(1);
 
         // Act
         var result = await _controller.GetAllUsers();
@@ -154,7 +161,8 @@ public class UserControllerTest
                 It.IsAny<long>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
-                It.IsAny<string?>()),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
             Times.Never);
     }
 
@@ -192,7 +200,8 @@ public class UserControllerTest
                 It.IsAny<long>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
-                It.IsAny<string?>()),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
             Times.Never);
     }
 
@@ -222,7 +231,8 @@ public class UserControllerTest
                 It.IsAny<long>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
-                It.IsAny<string?>()),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
             Times.Never);
     }
 
@@ -250,12 +260,13 @@ public class UserControllerTest
         };
 
         _userServiceMock
-            .Setup(s => s.UpdateUserAsync(
-                1,
-                "updated@test.com",
-                "Password123",
-                null))
-            .ReturnsAsync(updatedUser);
+    .Setup(s => s.UpdateUserAsync(
+        1,
+        "updated@test.com",
+        "Password123",
+        null,
+        null))
+    .ReturnsAsync(updatedUser);
 
         // Act
         var result = await _controller.UpdateUser(1, dto);
@@ -269,14 +280,14 @@ public class UserControllerTest
         Assert.Equal("User", response.Role);
 
         _userServiceMock.Verify(
-            s => s.UpdateUserAsync(
-                1,
-                "updated@test.com",
-                "Password123",
-                null),
-            Times.Once);
+    s => s.UpdateUserAsync(
+        1,
+        "updated@test.com",
+        "Password123",
+        null,
+        null),
+    Times.Once);
     }
-
 
     [Fact]
     public async Task CreateUser_AdminCreatesUser_ReturnsCreated()
@@ -297,14 +308,20 @@ public class UserControllerTest
             Email = "newuser@test.com",
             Username = "newuser",
             PasswordHash = "hashed-password",
-            Role = "User"
+            Role = "User",
+            HotelId = 1
         };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
 
         _userServiceMock
             .Setup(s => s.CreateUserAsync(
                 "newuser@test.com",
                 "Password123",
-                "User"))
+                "User",
+                1))
             .ReturnsAsync(createdUser);
 
         // Act
@@ -312,40 +329,19 @@ public class UserControllerTest
 
         // Assert
         var createdResult = Assert.IsType<CreatedAtActionResult>(result);
-        var response =
-            Assert.IsType<UserResponseDto>(createdResult.Value);
+        var response = Assert.IsType<UserResponseDto>(createdResult.Value);
 
         Assert.Equal(3, response.Id);
         Assert.Equal("newuser@test.com", response.Email);
         Assert.Equal("User", response.Role);
-    }
-
-
-    [Fact]
-    public async Task CreateUser_AdminCreatesSuperAdmin_ReturnsForbid()
-    {
-        // Arrange
-        SetUserContext(1, "Admin");
-
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
-        {
-            Email = "superadmin@test.com",
-            Password = "Password123",
-            Role = "SuperAdmin"
-        };
-
-        // Act
-        var result = await _controller.CreateUser(dto);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
 
         _userServiceMock.Verify(
             s => s.CreateUserAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
-            Times.Never);
+                "newuser@test.com",
+                "Password123",
+                "User",
+                1),
+            Times.Once);
     }
 
 
@@ -369,11 +365,12 @@ public class UserControllerTest
         Assert.IsType<BadRequestObjectResult>(result);
 
         _userServiceMock.Verify(
-            s => s.CreateUserAsync(
-                It.IsAny<string>(),
-                It.IsAny<string>(),
-                It.IsAny<string>()),
-            Times.Never);
+    s => s.CreateUserAsync(
+        It.IsAny<string>(),
+        It.IsAny<string>(),
+        It.IsAny<string>(),
+        It.IsAny<long?>()),
+    Times.Never);
     }
 
 
@@ -382,6 +379,139 @@ public class UserControllerTest
     {
         // Arrange
         SetUserContext(1, "Admin");
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.DeleteUserAsync(2))
+            .ReturnsAsync(true);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(2),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteUser_UserNotFound_ReturnsNotFound()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(99))
+            .ReturnsAsync((UserResponseDto?)null);
+
+        // Act
+        var result = await _controller.DeleteUser(99);
+
+        // Assert
+        Assert.IsType<NotFoundResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(99),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_UserBelongsToAnotherHotel_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(2);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(2),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_AdminCannotDeleteAnotherAdmin_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "admin@test.com",
+            Role = UserRoles.Admin
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(2),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_SuperAdminCanDeleteUser_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "SuperAdmin");
 
         _userServiceMock
             .Setup(s => s.UserExistsAsync(2))
@@ -397,26 +527,13 @@ public class UserControllerTest
         // Assert
         Assert.IsType<OkObjectResult>(result);
 
-        _userServiceMock.Verify(s => s.DeleteUserAsync(2), Times.Once);
-    }
+        _userServiceMock.Verify(
+            s => s.UserExistsAsync(2),
+            Times.Once);
 
-    [Fact]
-    public async Task DeleteUser_UserNotFound_ReturnsNotFound()
-    {
-        // Arrange
-        SetUserContext(1, "Admin");
-
-        _userServiceMock
-            .Setup(s => s.UserExistsAsync(99))
-            .ReturnsAsync(false);
-
-        // Act
-        var result = await _controller.DeleteUser(99);
-
-        // Assert
-        Assert.IsType<NotFoundResult>(result);
-
-        _userServiceMock.Verify(s => s.DeleteUserAsync(99), Times.Never);
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(2),
+            Times.Once);
     }
 
 
@@ -427,13 +544,14 @@ public class UserControllerTest
     public async Task CreateUser_AdminRoleIsNormalized_ReturnsCreated(string role)
     {
         // Arrange
-        SetUserContext(1, "Admin");
+        SetUserContext(1, "SuperAdmin");
 
         var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
         {
             Email = "newadmin@test.com",
             Password = "Password123",
-            Role = role
+            Role = role,
+            HotelId = 1
         };
 
         var createdUser = new HotelBookingAPI.Entity.Models.User
@@ -442,15 +560,17 @@ public class UserControllerTest
             Email = "newadmin@test.com",
             Username = "newadmin",
             PasswordHash = "hashed-password",
-            Role = "Admin"
+            Role = UserRoles.Admin,
+            HotelId = 1
         };
 
         _userServiceMock
-            .Setup(s => s.CreateUserAsync(
-                "newadmin@test.com",
-                "Password123",
-                "Admin"))
-            .ReturnsAsync(createdUser);
+    .Setup(s => s.CreateUserAsync(
+        "newadmin@test.com",
+        "Password123",
+        UserRoles.Admin,
+        1))
+    .ReturnsAsync(createdUser);
 
         // Act
         var result = await _controller.CreateUser(dto);
@@ -462,18 +582,19 @@ public class UserControllerTest
         Assert.Equal("Admin", response.Role);
 
         _userServiceMock.Verify(
-            s => s.CreateUserAsync(
-                "newadmin@test.com",
-                "Password123",
-                "Admin"),
-            Times.Once);
+    s => s.CreateUserAsync(
+        "newadmin@test.com",
+        "Password123",
+        "Admin",
+        1),
+    Times.Once);
     }
 
     [Fact]
     public async Task UpdateUser_AdminRoleIsNormalized_ReturnsOk()
     {
         // Arrange
-        SetUserContext(1, "Admin");
+        SetUserContext(1, "SuperAdmin");
 
         _userServiceMock
             .Setup(s => s.GetUserByIdAsync(2))
@@ -488,7 +609,8 @@ public class UserControllerTest
         {
             Email = "target@test.com",
             Password = "Password123",
-            Role = " admin "
+            Role = " admin ",
+            HotelId = 1
         };
 
         var updatedUser = new HotelBookingAPI.Entity.Models.User
@@ -497,7 +619,8 @@ public class UserControllerTest
             Email = "target@test.com",
             Username = "target",
             PasswordHash = "hashed-password",
-            Role = "Admin"
+            Role = UserRoles.Admin,
+            HotelId = 1
         };
 
         _userServiceMock
@@ -505,7 +628,8 @@ public class UserControllerTest
                 2,
                 "target@test.com",
                 "Password123",
-                "Admin"))
+                "Admin",
+                1))
             .ReturnsAsync(updatedUser);
 
         // Act
@@ -522,7 +646,8 @@ public class UserControllerTest
                 2,
                 "target@test.com",
                 "Password123",
-                "Admin"),
+                "Admin",
+                1),
             Times.Once);
     }
 
@@ -550,7 +675,8 @@ public class UserControllerTest
                 It.IsAny<long>(),
                 It.IsAny<string>(),
                 It.IsAny<string?>(),
-                It.IsAny<string?>()),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
             Times.Never);
     }
 
@@ -560,9 +686,24 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user@test.com",
+            Role = UserRoles.User
+        };
+
         _userServiceMock
-            .Setup(s => s.UserExistsAsync(2))
-            .ReturnsAsync(true);
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(1);
 
         _userServiceMock
             .Setup(s => s.DeleteUserAsync(2))
@@ -573,6 +714,574 @@ public class UserControllerTest
 
         // Assert
         Assert.IsType<ConflictObjectResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(2),
+            Times.Once);
     }
 
+    [Fact]
+    public async Task GetAllUsers_AdminSeesOnlyOwnHotelUsers_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var users = new List<UserResponseDto>
+    {
+        new UserResponseDto
+        {
+            Id = 2,
+            Email = "user1@test.com",
+            Role = UserRoles.User
+        }
+    };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetAllUsersAsync(1))
+            .ReturnsAsync(users);
+
+        // Act
+        var result = await _controller.GetAllUsers();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsAssignableFrom<IEnumerable<UserResponseDto>>(
+            okResult.Value);
+
+        Assert.Single(response);
+
+        _userServiceMock.Verify(
+            s => s.GetAllUsersAsync(1),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetAllUsers_SuperAdminSeesAllUsers_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "SuperAdmin");
+
+        var users = new List<UserResponseDto>
+    {
+        new UserResponseDto
+        {
+            Id = 2,
+            Email = "user1@test.com",
+            Role = UserRoles.User
+        },
+        new UserResponseDto
+        {
+            Id = 3,
+            Email = "user2@test.com",
+            Role = UserRoles.User
+        }
+    };
+
+        _userServiceMock
+            .Setup(s => s.GetAllUsersAsync(null))
+            .ReturnsAsync(users);
+
+        // Act
+        var result = await _controller.GetAllUsers();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var response = Assert.IsAssignableFrom<IEnumerable<UserResponseDto>>(
+            okResult.Value);
+
+        Assert.Equal(2, response.Count());
+
+        _userServiceMock.Verify(
+            s => s.GetAllUsersAsync(null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUser_AdminCanAccessOwnHotelUser_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var user = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user1@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.UserExistsAsync(2))
+            .ReturnsAsync(true);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _controller.GetUser(2);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal(2, response.Id);
+
+        _userServiceMock.Verify(
+            s => s.GetUserByIdAsync(2),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task GetUser_AdminCannotAccessAnotherHotelUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.UserExistsAsync(2))
+            .ReturnsAsync(true);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(2);
+
+        // Act
+        var result = await _controller.GetUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.GetUserByIdAsync(2),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetUser_SuperAdminCanAccessAnyHotelUser_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "SuperAdmin");
+
+        var user = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user2@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _controller.GetUser(2);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal(2, response.Id);
+
+        _userServiceMock.Verify(
+            s => s.GetUserByIdAsync(2),
+            Times.Once);
+
+        _userServiceMock.Verify(
+            s => s.GetHotelIdByUserIdAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetUser_UserCannotAccessAnotherUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "User");
+
+        // Act
+        var result = await _controller.GetUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.GetUserByIdAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+    [Fact]
+    public async Task UpdateUser_AdminCanUpdateOwnHotelUser_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "old@test.com",
+            Role = UserRoles.User
+        };
+
+        var updatedUser = new User
+        {
+            Id = 2,
+            Email = "updated@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.UpdateUserAsync(
+                2, "updated@test.com", "Password123", null, null))
+            .ReturnsAsync(updatedUser);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal("updated@test.com", response.Email);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                2, "updated@test.com", "Password123", null, null),
+            Times.Once);
+    }
+
+    [Fact]
+    public async Task UpdateUser_AdminCannotUpdateAnotherHotelUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(2);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
+            Times.Never);
+    }
+    [Fact]
+    public async Task UpdateUser_AdminCannotUpdateSuperAdmin_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "superadmin@test.com",
+            Role = UserRoles.SuperAdmin
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
+            Times.Never);
+    }
+    [Fact]
+    public async Task UpdateUser_SuperAdminCanUpdateRoleAndHotel_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(1, "SuperAdmin");
+
+        var dto = new UserDto
+        {
+            Email = "admin@test.com",
+            Password = "Password123",
+            Role = UserRoles.Admin,
+            HotelId = 2
+        };
+
+        var updatedUser = new User
+        {
+            Id = 3,
+            Email = "admin@test.com",
+            Role = UserRoles.Admin,
+            HotelId = 2
+        };
+
+        _userServiceMock
+            .Setup(s => s.UpdateUserAsync(
+                3, "admin@test.com", "Password123",
+                UserRoles.Admin, 2))
+            .ReturnsAsync(updatedUser);
+
+        // Act
+        var result = await _controller.UpdateUser(3, dto);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal(UserRoles.Admin, response.Role);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                3, "admin@test.com", "Password123",
+                UserRoles.Admin, 2),
+            Times.Once);
+    }
+    [Fact]
+    public async Task UpdateUser_UserCanUpdateOwnProfile_ReturnsOk()
+    {
+        // Arrange
+        SetUserContext(2, "User");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        var updatedUser = new User
+        {
+            Id = 2,
+            Email = "updated@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.UpdateUserAsync(
+                2, "updated@test.com", "Password123", null, null))
+            .ReturnsAsync(updatedUser);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var response = Assert.IsType<UserResponseDto>(okResult.Value);
+
+        Assert.Equal("updated@test.com", response.Email);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                2, "updated@test.com", "Password123", null, null),
+            Times.Once);
+    }
+    [Fact]
+    public async Task UpdateUser_UserCannotUpdateAnotherUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "User");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_AdminCannotDeleteAnotherHotelUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "user@test.com",
+            Role = UserRoles.User
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(2))
+            .ReturnsAsync(2);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_AdminWithoutHotelCannotDeleteUser_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync((long?)null);
+
+        // Act
+        var result = await _controller.DeleteUser(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task UpdateUser_AdminCannotUpdateAnotherAdmin_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, "Admin");
+
+        var dto = new UserDto
+        {
+            Email = "updated@test.com",
+            Password = "Password123",
+            Role = UserRoles.User
+        };
+
+        var targetUser = new UserResponseDto
+        {
+            Id = 2,
+            Email = "admin@test.com",
+            Role = UserRoles.Admin
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(1);
+
+        _userServiceMock
+            .Setup(s => s.GetUserByIdAsync(2))
+            .ReturnsAsync(targetUser);
+
+        // Act
+        var result = await _controller.UpdateUser(2, dto);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.UpdateUserAsync(
+                It.IsAny<long>(),
+                It.IsAny<string>(),
+                It.IsAny<string?>(),
+                It.IsAny<string?>(),
+                It.IsAny<long?>()),
+            Times.Never);
+    }
 }

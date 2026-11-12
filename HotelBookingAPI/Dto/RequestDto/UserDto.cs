@@ -14,5 +14,7 @@ namespace HotelBookingAPI.Dto.RequestDto
 
         [StringLength(20)]
         public string Role { get; set; } = "User";
+
+        public long? HotelId { get; set; }
     }
 }

@@ -137,7 +137,7 @@ namespace HotelBookingAPI.Controllers
 
                 var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
-                if (hotel.Id != adminHotelId)
+                if (!adminHotelId.HasValue || hotel.Id != adminHotelId.Value)
                     return Forbid();
             }
 
@@ -156,29 +156,13 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = "SuperAdmin")]
         public async Task<IActionResult> DeleteHotel(long id)
         {
             var hotel = await _hotelService.GetHotelByIdAsync(id);
 
             if (hotel == null)
                 return NotFound(new { message = "Hotel not found" });
-
-            if (User.IsInRole("Admin"))
-            {
-                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-                if (userIdClaim == null ||
-                    !long.TryParse(userIdClaim.Value, out var userId))
-                {
-                    return Forbid();
-                }
-
-                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
-
-                if (hotel.Id != adminHotelId)
-                    return Forbid();
-            }
 
             try
             {

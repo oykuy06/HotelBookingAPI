@@ -96,15 +96,13 @@ namespace HotelBookingAPI.Services
         public async Task<bool> DeleteHotelAsync(long id)
         {
             var hotel = await _context.Hotels
-                .Include(h => h.Rooms)
-                .ThenInclude(r => r.Reservations)
-                .FirstOrDefaultAsync(h => h.Id == id);
+     .FirstOrDefaultAsync(h => h.Id == id);
 
             if (hotel == null)
                 return false;
 
-            var hasReservations = hotel.Rooms
-                .Any(room => room.Reservations.Any());
+            var hasReservations = await _context.Reservations
+                .AnyAsync(r => r.Room.HotelId == id);
 
             if (hasReservations)
                 throw new InvalidOperationException(

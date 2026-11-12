@@ -3,9 +3,11 @@ using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
+using System.Reflection;
 using System.Security.Claims;
 using Xunit;
 
@@ -315,7 +317,7 @@ namespace HotelBookingAPI.Tests.Controllers
         }
 
         [Fact]
-        public async Task DeleteHotel_WhenAdminTriesOtherHotel_ReturnsForbid()
+        public async Task UpdateHotel_WhenAdminUpdatesOwnHotel_ReturnsOk()
         {
             // Arrange
             var identity = new ClaimsIdentity(
@@ -334,31 +336,121 @@ namespace HotelBookingAPI.Tests.Controllers
                 }
             };
 
+            _userServiceMock
+                .Setup(s => s.GetHotelIdByUserIdAsync(9))
+                .ReturnsAsync((long?)1);
+
             _hotelServiceMock
-                .Setup(s => s.GetHotelByIdAsync(2))
+                .Setup(s => s.GetHotelByIdAsync(1))
                 .ReturnsAsync(new HotelResponseDto
                 {
-                    Id = 2,
-                    Name = "Another Hotel",
+                    Id = 1,
+                    Name = "Test Hotel",
+                    Description = "Old Description",
+                    Address = "Old Address",
+                    Photo = "old-photo",
+                    Rooms = new List<RoomResponseDto>()
+                });
+
+            _hotelServiceMock
+                .Setup(s => s.UpdateHotelAsync(1, It.IsAny<Hotel>()))
+                .ReturnsAsync(new Hotel
+                {
+                    Id = 1,
+                    Name = "Updated Hotel",
+                    Description = "Updated Description",
+                    Address = "Updated Address",
+                    Photo = "updated-photo"
+                });
+
+            var dto = new HotelBookingAPI.Dto.RequestDto.HotelDto
+            {
+                Name = "Updated Hotel",
+                Description = "Updated Description",
+                Address = "Updated Address",
+                Photo = "updated-photo"
+            };
+
+            // Act
+            var result = await _controller.UpdateHotel(1, dto);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+
+            _hotelServiceMock.Verify(
+                s => s.UpdateHotelAsync(1, It.IsAny<Hotel>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task UpdateHotel_WhenAdminHasNoHotel_ReturnsForbid()
+        {
+            // Arrange
+            var identity = new ClaimsIdentity(
+                new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, "9"),
+            new Claim(ClaimTypes.Role, "Admin")
+                },
+                "TestAuth");
+
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext
+                {
+                    User = new ClaimsPrincipal(identity)
+                }
+            };
+
+            _userServiceMock
+                .Setup(s => s.GetHotelIdByUserIdAsync(9))
+                .ReturnsAsync((long?)null);
+
+            _hotelServiceMock
+                .Setup(s => s.GetHotelByIdAsync(1))
+                .ReturnsAsync(new HotelResponseDto
+                {
+                    Id = 1,
+                    Name = "Test Hotel",
                     Description = "Description",
                     Address = "Address",
                     Photo = "photo",
                     Rooms = new List<RoomResponseDto>()
                 });
 
-            _userServiceMock
-                .Setup(s => s.GetHotelIdByUserIdAsync(9))
-                .ReturnsAsync((long?)1);
+            var dto = new HotelBookingAPI.Dto.RequestDto.HotelDto
+            {
+                Name = "Updated Hotel",
+                Description = "Updated Description",
+                Address = "Updated Address",
+                Photo = "updated-photo"
+            };
 
             // Act
-            var result = await _controller.DeleteHotel(2);
+            var result = await _controller.UpdateHotel(1, dto);
 
             // Assert
             Assert.IsType<ForbidResult>(result);
 
             _hotelServiceMock.Verify(
-                s => s.DeleteHotelAsync(2),
+                s => s.UpdateHotelAsync(1, It.IsAny<Hotel>()),
                 Times.Never);
+        }
+
+        [Fact]
+        public void DeleteHotel_OnlySuperAdminCanAccess()
+        {
+            // Arrange
+            var method = typeof(HotelController)
+                .GetMethod(nameof(HotelController.DeleteHotel));
+
+            // Act
+            var authorizeAttribute = method?
+                .GetCustomAttribute<AuthorizeAttribute>();
+
+            // Assert
+            Assert.NotNull(authorizeAttribute);
+            Assert.Equal("SuperAdmin", authorizeAttribute.Roles);
         }
 
         [Fact]
@@ -483,5 +575,7 @@ namespace HotelBookingAPI.Tests.Controllers
                 s => s.DeleteHotelAsync(1),
                 Times.Once);
         }
+
+
     }
 }

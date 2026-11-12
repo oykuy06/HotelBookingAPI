@@ -29,11 +29,35 @@ namespace HotelBookingAPI.Controllers
             var currentUserId = User.FindFirst(
                 ClaimTypes.NameIdentifier)?.Value;
 
-            var isAdmin = User.IsInRole(UserRoles.Admin) ||
-                          User.IsInRole(UserRoles.SuperAdmin);
+            var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
+            var isAdmin = User.IsInRole(UserRoles.Admin) || isSuperAdmin;
 
+            // Normal kullanıcı yalnızca kendi bilgilerini görebilir.
             if (!isAdmin && currentUserId != id.ToString())
                 return Forbid();
+
+            // Admin yalnızca kendi otelindeki kullanıcıları görebilir.
+            if (isAdmin && !isSuperAdmin)
+            {
+                if (!long.TryParse(currentUserId, out var adminUserId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
+                    adminUserId);
+
+                if (!adminHotelId.HasValue)
+                    return Forbid();
+
+                var targetExists = await _userService.UserExistsAsync(id);
+
+                if (!targetExists)
+                    return NotFound();
+
+                var targetHotelId = await _userService.GetHotelIdByUserIdAsync(id);
+
+                if (targetHotelId != adminHotelId)
+                    return Forbid();
+            }
 
             var user = await _userService.GetUserByIdAsync(id);
 
@@ -47,16 +71,27 @@ namespace HotelBookingAPI.Controllers
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> GetAllUsers()
         {
-            var users = await _userService.GetAllUsersAsync();
+            long? hotelId = null;
 
-            var dtoList = users.Select(u => new UserResponseDto
+            // Admin yalnızca kendi otelindeki kullanıcıları görebilir.
+            if (User.IsInRole(UserRoles.Admin) &&
+                !User.IsInRole(UserRoles.SuperAdmin))
             {
-                Id = u.Id,
-                Email = u.Email,
-                Role = u.Role
-            });
+                var currentUserId = User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
 
-            return Ok(dtoList);
+                if (!long.TryParse(currentUserId, out var adminUserId))
+                    return Forbid();
+
+                hotelId = await _userService.GetHotelIdByUserIdAsync(adminUserId);
+
+                if (!hotelId.HasValue)
+                    return Forbid();
+            }
+
+            var users = await _userService.GetAllUsersAsync(hotelId);
+
+            return Ok(users);
         }
 
         [HttpPost]
@@ -77,16 +112,41 @@ namespace HotelBookingAPI.Controllers
                 return BadRequest(new { message = "Invalid role" });
             }
 
-            if (normalizedRole == UserRoles.SuperAdmin &&
-                !User.IsInRole(UserRoles.SuperAdmin))
-            {
+            var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
+            long? hotelId = dto.HotelId;
+
+            // Yalnızca SuperAdmin Admin oluşturabilir.
+            if (normalizedRole == UserRoles.Admin && !isSuperAdmin)
                 return Forbid();
+
+            // Admin yalnızca kendi otelinde normal kullanıcı oluşturabilir.
+            if (!isSuperAdmin)
+            {
+                if (normalizedRole != UserRoles.User)
+                    return Forbid();
+
+                var currentUserId = User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
+
+                if (!long.TryParse(currentUserId, out var adminUserId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
+                    adminUserId);
+
+                if (!adminHotelId.HasValue)
+                    return Forbid();
+
+                hotelId = adminHotelId;
             }
 
             try
             {
                 var user = await _userService.CreateUserAsync(
-                    dto.Email, dto.Password, normalizedRole);
+                    dto.Email,
+                    dto.Password,
+                    normalizedRole,
+                    hotelId);
 
                 var response = new UserResponseDto
                 {
@@ -114,7 +174,6 @@ namespace HotelBookingAPI.Controllers
                 ClaimTypes.NameIdentifier)?.Value;
 
             var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
-
             var isAdmin = User.IsInRole(UserRoles.Admin) || isSuperAdmin;
 
             // Normal kullanıcı yalnızca kendi hesabını güncelleyebilir.
@@ -135,31 +194,45 @@ namespace HotelBookingAPI.Controllers
                 return BadRequest(new { message = "Invalid role" });
             }
 
-            // Admin, SuperAdmin rolü atayamaz.
-            if (normalizedRole == UserRoles.SuperAdmin && !isSuperAdmin)
-                return Forbid();
-
-            // Admin, mevcut bir SuperAdmin hesabını değiştiremez.
+            // Admin yalnızca kendi otelindeki kullanıcıları güncelleyebilir.
             if (isAdmin && !isSuperAdmin)
             {
+                if (!long.TryParse(currentUserId, out var adminUserId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
+                    adminUserId);
+
+                if (!adminHotelId.HasValue)
+                    return Forbid();
+
                 var targetUser = await _userService.GetUserByIdAsync(id);
 
                 if (targetUser == null)
                     return NotFound();
 
-                if (targetUser.Role == UserRoles.SuperAdmin)
+                if (targetUser.Role != UserRoles.User) return Forbid();
+
+                var targetHotelId = await _userService.GetHotelIdByUserIdAsync(id);
+
+                if (targetHotelId != adminHotelId)
                     return Forbid();
             }
 
-            // Normal kullanıcı kendi rolünü değiştiremez.
-            var role = isAdmin ? normalizedRole : null;
+            // Yalnızca SuperAdmin rol ve otel atamasını değiştirebilir.
+            var role = isSuperAdmin ? normalizedRole : null;
+            var hotelId = isSuperAdmin ? dto.HotelId : null;
 
             User? user;
 
             try
             {
                 user = await _userService.UpdateUserAsync(
-                    id, dto.Email, dto.Password, role);
+                    id,
+                    dto.Email,
+                    dto.Password,
+                    role,
+                    hotelId);
             }
             catch (InvalidOperationException ex)
             {
@@ -183,10 +256,45 @@ namespace HotelBookingAPI.Controllers
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteUser(long id)
         {
-            var exists = await _userService.UserExistsAsync(id);
+            var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
 
-            if (!exists)
-                return NotFound();
+            if (!isSuperAdmin)
+            {
+                var currentUserId = User.FindFirst(
+                    ClaimTypes.NameIdentifier)?.Value;
+
+                if (!long.TryParse(currentUserId, out var adminUserId))
+                    return Forbid();
+
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
+                    adminUserId);
+
+                if (!adminHotelId.HasValue)
+                    return Forbid();
+
+                var targetUser = await _userService.GetUserByIdAsync(id);
+
+                if (targetUser == null)
+                    return NotFound();
+
+                // Admin, SuperAdmin veya başka Admin hesaplarını silemez.
+                if (targetUser.Role == UserRoles.SuperAdmin ||
+                    targetUser.Role == UserRoles.Admin)
+                    return Forbid();
+
+                var targetHotelId = await _userService.GetHotelIdByUserIdAsync(id);
+
+                // Yalnızca kendi otelindeki kullanıcıları silebilir.
+                if (targetHotelId != adminHotelId)
+                    return Forbid();
+            }
+            else
+            {
+                var exists = await _userService.UserExistsAsync(id);
+
+                if (!exists)
+                    return NotFound();
+            }
 
             var success = await _userService.DeleteUserAsync(id);
 

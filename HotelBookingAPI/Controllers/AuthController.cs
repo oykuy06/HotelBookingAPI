@@ -44,9 +44,11 @@ namespace HotelBookingAPI.Controllers
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
             var token = await _authService.ForgotPasswordAsync(dto.Email);
-            if (token == null) return NotFound(new { message = "User not found" });
 
-            return Ok(new { message = "Reset link sent to email" });
+            if (token == null)
+                return Ok(new { message = "If the account exists, a reset link has been sent." });
+
+            return Ok(new { message = "If the account exists, a reset link has been sent." });
         }
 
         [HttpPost("reset-password")]

@@ -46,10 +46,18 @@ namespace HotelBookingAPI.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync()
+        public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync(long? hotelId)
         {
-            return await _context.Users
+            var query = _context.Users
                 .AsNoTracking()
+                .AsQueryable();
+
+            if (hotelId.HasValue)
+            {
+                query = query.Where(u => u.HotelId == hotelId.Value);
+            }
+
+            return await query
                 .Select(u => new UserResponseDto
                 {
                     Id = u.Id,
@@ -71,9 +79,8 @@ namespace HotelBookingAPI.Services
                 .ToListAsync();
         }
 
-        public async Task<User> CreateUserAsync(string email, string password, string role = UserRoles.User)
+        public async Task<User> CreateUserAsync(string email, string password, string role = UserRoles.User, long? hotelId = null)
         {
-
             email = email.Trim().ToLowerInvariant();
 
             var emailExists = await _context.Users
@@ -82,12 +89,33 @@ namespace HotelBookingAPI.Services
             if (emailExists)
                 throw new InvalidOperationException("Email is already registered.");
 
+            var normalizedRole = UserRoles.Normalize(role);
+
+            if (normalizedRole == UserRoles.Admin)
+            {
+                if (!hotelId.HasValue)
+                    throw new InvalidOperationException(
+                        "Admin must be assigned to a hotel.");
+
+                var hotelExists = await _context.Hotels
+                    .AnyAsync(h => h.Id == hotelId.Value);
+
+                if (!hotelExists)
+                    throw new InvalidOperationException("Hotel not found.");
+            }
+            else if (hotelId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "Only Admin users can be assigned to a hotel.");
+            }
+
             var user = new User
             {
                 Email = email,
                 Username = email.Split('@')[0],
                 PasswordHash = _passwordHashService.HashPassword(password),
-                Role = UserRoles.Normalize(role)
+                Role = normalizedRole,
+                HotelId = hotelId
             };
 
             _context.Users.Add(user);
@@ -96,7 +124,12 @@ namespace HotelBookingAPI.Services
             return user;
         }
 
-        public async Task<User?> UpdateUserAsync(long id, string email, string? password = null, string? role = null)
+        public async Task<User?> UpdateUserAsync(
+    long id,
+    string email,
+    string? password = null,
+    string? role = null,
+    long? hotelId = null)
         {
             var user = await _context.Users.FindAsync(id);
 
@@ -130,7 +163,35 @@ namespace HotelBookingAPI.Services
 
             if (!string.IsNullOrWhiteSpace(role))
             {
-                user.Role = UserRoles.Normalize(role);
+                var normalizedRole = UserRoles.Normalize(role);
+
+                if (normalizedRole == UserRoles.Admin)
+                {
+                    if (!hotelId.HasValue)
+                        throw new InvalidOperationException(
+                            "Admin must be assigned to a hotel.");
+                }
+
+                if (normalizedRole == UserRoles.SuperAdmin && hotelId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        "SuperAdmin cannot be assigned to a hotel.");
+                }
+
+                if (hotelId.HasValue)
+                {
+                    var hotelExists = await _context.Hotels
+                        .AnyAsync(h => h.Id == hotelId.Value);
+
+                    if (!hotelExists)
+                        throw new InvalidOperationException("Hotel not found.");
+                }
+
+                user.HotelId = normalizedRole == UserRoles.SuperAdmin
+                    ? null
+                    : hotelId;
+
+                user.Role = normalizedRole;
             }
 
             await _context.SaveChangesAsync();

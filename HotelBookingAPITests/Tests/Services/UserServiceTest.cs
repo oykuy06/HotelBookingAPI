@@ -1,11 +1,14 @@
-﻿using System;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using HotelBookingAPI.Constants;
+using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
 using HotelBookingAPI.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace HotelBookingAPI.Tests.Services
@@ -137,7 +140,7 @@ namespace HotelBookingAPI.Tests.Services
             var service = CreateUserService(context);
 
             // Act
-            var users = await service.GetAllUsersAsync();
+            var users = await service.GetAllUsersAsync(null);
 
             // Assert
             Assert.Equal(2, users.Count());
@@ -148,6 +151,17 @@ namespace HotelBookingAPI.Tests.Services
         {
             // Arrange
             using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
 
             var user = new User
             {
@@ -167,13 +181,15 @@ namespace HotelBookingAPI.Tests.Services
                 user.Id,
                 email: "new@mail.com",
                 password: "newpass",
-                role: "Admin"
+                role: "Admin",
+                hotelId: hotel.Id
             );
 
             // Assert
             Assert.NotNull(updatedUser);
             Assert.Equal("new@mail.com", updatedUser.Email);
             Assert.Equal("Admin", updatedUser.Role);
+            Assert.Equal(hotel.Id, updatedUser.HotelId);
             Assert.Equal("hashed_newpass", updatedUser.PasswordHash);
         }
 
@@ -227,15 +243,32 @@ namespace HotelBookingAPI.Tests.Services
         public async Task CreateUserAsync_ShouldNormalizeRole(string role)
         {
             // Arrange
+            // Arrange
             using var context = CreateDbContext();
             var service = CreateUserService(context);
 
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            long? hotelId = UserRoles.Normalize(role) == UserRoles.Admin
+                ? hotel.Id
+                : null;
+
             // Act
             var user = await service.CreateUserAsync(
-                email: "test@mail.com",
-                password: "123456",
-                role: role
-            );
+    email: "test@mail.com",
+    password: "123456",
+    role: role,
+    hotelId: hotelId
+);
 
             // Assert
             var expectedRole = role.Trim().ToLowerInvariant() switch
@@ -255,6 +288,17 @@ namespace HotelBookingAPI.Tests.Services
             // Arrange
             using var context = CreateDbContext();
 
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
             var user = new User
             {
                 Email = "old@mail.com",
@@ -272,13 +316,58 @@ namespace HotelBookingAPI.Tests.Services
             var updatedUser = await service.UpdateUserAsync(
                 user.Id,
                 email: "old@mail.com",
-                role: " admin "
+                role: " admin ",
+                hotelId: hotel.Id
             );
 
             // Assert
             Assert.NotNull(updatedUser);
             Assert.Equal("Admin", updatedUser.Role);
+            Assert.Equal(hotel.Id, updatedUser.HotelId);
         }
+
+        [Fact]
+        public async Task GetAllUsersAsync_FiltersByHotelId()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var users = new List<User>
+    {
+        new User
+        {
+            Email = "user1@test.com",
+            Username = "user1",
+            PasswordHash = "hash",
+            Role = UserRoles.User,
+            HotelId = 1
+        },
+        new User
+        {
+            Email = "user2@test.com",
+            Username = "user2",
+            PasswordHash = "hash",
+            Role = UserRoles.User,
+            HotelId = 2
+        }
+    };
+
+            context.Users.AddRange(users);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var result = await service.GetAllUsersAsync(1);
+
+            // Assert
+            var userList = result.ToList();
+
+            Assert.Single(userList);
+            Assert.Equal("user1@test.com", userList[0].Email);
+        }
+
+        
 
     }
 }
