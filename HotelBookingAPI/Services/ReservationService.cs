@@ -35,6 +35,29 @@ namespace HotelBookingAPI.Services
                 .ToListAsync();
         }
 
+
+        public async Task<IEnumerable<ReservationResponseDto>> GetReservationsByHotelIdAsync(long hotelId)
+        {
+            return await _context.Reservations
+                .AsNoTracking()
+                .Where(r => r.Room.HotelId == hotelId)
+                .Select(r => new ReservationResponseDto
+                {
+                    Id = r.Id,
+                    UserId = r.UserId,
+                    UserName = r.User.Username,
+                    RoomId = r.RoomId,
+                    HotelId = r.Room.HotelId,
+                    RoomName = r.Room.Name,
+                    CheckInDate = r.CheckInDate,
+                    CheckOutDate = r.CheckOutDate,
+                    TotalPrice = (decimal)r.TotalPrice,
+                    Status = r.Status
+                })
+                .ToListAsync();
+        }
+
+
         public async Task<ReservationResponseDto?> GetReservationByIdAsync(long id)
         {
             return await _context.Reservations
@@ -56,7 +79,9 @@ namespace HotelBookingAPI.Services
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<Reservation> CreateReservationAsync(Reservation reservation)
+        public async Task<Reservation> CreateReservationAsync(
+    Reservation reservation,
+    long? allowedHotelId = null)
         {
             var userExists = await _context.Users
                 .AnyAsync(u => u.Id == reservation.UserId);
@@ -69,6 +94,13 @@ namespace HotelBookingAPI.Services
 
             if (room == null)
                 throw new ArgumentException("Room not found");
+
+            if (allowedHotelId.HasValue &&
+    room.HotelId != allowedHotelId.Value)
+            {
+                throw new UnauthorizedAccessException(
+                    "You cannot create a reservation for another hotel's room.");
+            }
 
             ValidateReservationDates(
                 reservation.CheckInDate,
@@ -99,7 +131,8 @@ namespace HotelBookingAPI.Services
 
         public async Task<Reservation?> UpdateReservationAsync(
             long id,
-            Reservation updatedReservation)
+            Reservation updatedReservation,
+            long? allowedHotelId = null)
         {
             var existing = await _context.Reservations.FindAsync(id);
 
@@ -112,12 +145,19 @@ namespace HotelBookingAPI.Services
             if (room == null)
                 throw new ArgumentException("Room not found");
 
+            if (allowedHotelId.HasValue && room.HotelId != allowedHotelId.Value)
+            {
+                throw new UnauthorizedAccessException(
+                    "You cannot move a reservation to another hotel's room.");
+            }
+
             ValidateReservationDates(
                 updatedReservation.CheckInDate,
                 updatedReservation.CheckOutDate);
 
             var numberOfNights =
-                (updatedReservation.CheckOutDate.Date - updatedReservation.CheckInDate.Date).Days;
+                (updatedReservation.CheckOutDate.Date -
+                 updatedReservation.CheckInDate.Date).Days;
 
             var hasConflict = await _context.Reservations
                 .AnyAsync(r =>
@@ -140,6 +180,7 @@ namespace HotelBookingAPI.Services
 
             return existing;
         }
+
 
         public async Task<bool> DeleteReservationAsync(long id)
         {

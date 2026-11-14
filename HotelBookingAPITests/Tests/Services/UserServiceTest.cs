@@ -71,6 +71,174 @@ namespace HotelBookingAPI.Tests.Services
             Assert.Single(context.Users);
         }
 
+
+        [Fact]
+        public async Task CreateUserAsync_UserWithValidHotelId_ShouldCreateUser()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var user = await service.CreateUserAsync(
+                email: "user@mail.com",
+                password: "123456",
+                role: UserRoles.User,
+                hotelId: hotel.Id
+            );
+
+            // Assert
+            Assert.NotNull(user);
+            Assert.Equal(UserRoles.User, user.Role);
+            Assert.Equal(hotel.Id, user.HotelId);
+        }
+
+
+        [Fact]
+        public async Task CreateUserAsync_AdminWithValidHotelId_ShouldCreateAdmin()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var admin = await service.CreateUserAsync(
+                email: "admin@mail.com",
+                password: "123456",
+                role: UserRoles.Admin,
+                hotelId: hotel.Id
+            );
+
+            // Assert
+            Assert.NotNull(admin);
+            Assert.Equal(UserRoles.Admin, admin.Role);
+            Assert.Equal(hotel.Id, admin.HotelId);
+        }
+
+
+        [Fact]
+        public async Task CreateUserAsync_SuperAdminWithHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "superadmin@mail.com",
+                    password: "123456",
+                    role: UserRoles.SuperAdmin,
+                    hotelId: hotel.Id
+                )
+            );
+
+            Assert.Equal(
+                "SuperAdmin cannot be assigned to a hotel.",
+                exception.Message
+            );
+        }
+
+
+        [Fact]
+        public async Task CreateUserAsync_WithInvalidHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "user@mail.com",
+                    password: "123456",
+                    role: UserRoles.User,
+                    hotelId: 999
+                )
+            );
+
+            Assert.Equal("Hotel not found.", exception.Message);
+        }
+
+
+
+        [Fact]
+        public async Task CreateUserAsync_SuperAdminWithoutHotelId_ShouldCreateSuperAdmin()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act
+            var superAdmin = await service.CreateUserAsync(
+                email: "superadmin@mail.com",
+                password: "123456",
+                role: UserRoles.SuperAdmin
+            );
+
+            // Assert
+            Assert.NotNull(superAdmin);
+            Assert.Equal(UserRoles.SuperAdmin, superAdmin.Role);
+            Assert.Null(superAdmin.HotelId);
+        }
+
+
+        [Fact]
+        public async Task CreateUserAsync_AdminWithoutHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "admin@mail.com",
+                    password: "123456",
+                    role: UserRoles.Admin
+                )
+            );
+
+            Assert.Equal("Admin must be assigned to a hotel.", exception.Message);
+        }
+
+
         [Fact]
         public async Task GetUserByIdAsync_ShouldReturnUser_WhenUserExists()
         {

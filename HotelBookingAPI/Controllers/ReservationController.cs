@@ -22,12 +22,11 @@ namespace HotelBookingAPI.Controllers
             _userService = userService;
         }
 
+
         [HttpGet]
         [Authorize(Roles = "Admin,SuperAdmin")]
         public async Task<IActionResult> GetAllReservations()
         {
-            var reservations = await _reservationService.GetAllReservationsAsync();
-
             if (User.IsInRole("Admin"))
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -40,13 +39,17 @@ namespace HotelBookingAPI.Controllers
                 if (adminHotelId == null)
                     return Forbid();
 
-                reservations = reservations
-                    .Where(r => r.HotelId == adminHotelId.Value)
-                    .ToList();
+                var reservations = await _reservationService
+                    .GetReservationsByHotelIdAsync(adminHotelId.Value);
+
+                return Ok(reservations);
             }
 
-            return Ok(reservations);
+            var allReservations = await _reservationService.GetAllReservationsAsync();
+
+            return Ok(allReservations);
         }
+
 
         [HttpGet("{id:long}")]
         [Authorize(Roles = "User,Admin,SuperAdmin")]
@@ -80,7 +83,7 @@ namespace HotelBookingAPI.Controllers
         [HttpPost]
         [Authorize(Roles = "User,Admin,SuperAdmin")]
         public async Task<IActionResult> CreateReservation(
-            [FromBody] CreateReservationDto dto)
+    [FromBody] CreateReservationDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -89,6 +92,18 @@ namespace HotelBookingAPI.Controllers
 
             if (!long.TryParse(userIdClaim, out var userId))
                 return Unauthorized();
+
+            long? allowedHotelId = null;
+
+            // Admin yalnızca kendi otelinin odalarına rezervasyon oluşturabilir.
+            if (User.IsInRole("Admin"))
+            {
+                allowedHotelId =
+                    await _userService.GetHotelIdByUserIdAsync(userId);
+
+                if (!allowedHotelId.HasValue)
+                    return Forbid();
+            }
 
             var reservation = new Reservation
             {
@@ -104,7 +119,13 @@ namespace HotelBookingAPI.Controllers
 
             try
             {
-                created = await _reservationService.CreateReservationAsync(reservation);
+                created = await _reservationService.CreateReservationAsync(
+                    reservation,
+                    allowedHotelId);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (ArgumentException ex)
             {
@@ -123,6 +144,7 @@ namespace HotelBookingAPI.Controllers
                 new { id = created.Id },
                 responseDto);
         }
+
 
         [HttpPut("{id:long}")]
         [Authorize(Roles = "User,Admin,SuperAdmin")]
@@ -144,14 +166,20 @@ namespace HotelBookingAPI.Controllers
             if (existingReservation == null)
                 return NotFound(new { message = "Reservation not found" });
 
+            long? allowedHotelId = null;
+
             if (User.IsInRole("Admin"))
             {
-                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
+                allowedHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
-                if (adminHotelId == null || existingReservation.HotelId != adminHotelId.Value)
+                if (!allowedHotelId.HasValue ||
+                    existingReservation.HotelId != allowedHotelId.Value)
+                {
                     return Forbid();
+                }
             }
-            else if (User.IsInRole("User") && existingReservation.UserId != userId)
+            else if (User.IsInRole("User") &&
+                     existingReservation.UserId != userId)
             {
                 return Forbid();
             }
@@ -167,7 +195,12 @@ namespace HotelBookingAPI.Controllers
                         RoomId = dto.RoomId,
                         CheckInDate = dto.CheckInDate,
                         CheckOutDate = dto.CheckOutDate
-                    });
+                    },
+                    allowedHotelId);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (ArgumentException ex)
             {
@@ -183,6 +216,7 @@ namespace HotelBookingAPI.Controllers
 
             return Ok(new { message = "Reservation updated successfully" });
         }
+
 
         [HttpDelete("{id:long}")]
         [Authorize(Roles = "User,Admin,SuperAdmin")]

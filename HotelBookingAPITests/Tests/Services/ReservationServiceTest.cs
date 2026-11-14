@@ -69,6 +69,81 @@ public class ReservationServiceTest
         Assert.Single(result);
     }
 
+
+    [Fact]
+    public async Task GetReservationsByHotelIdAsync_ReturnsOnlyReservationsFromRequestedHotel()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "User"
+        });
+
+        context.Rooms.AddRange(
+            new Room
+            {
+                Id = 1,
+                Name = "Deluxe Room",
+                HotelId = 100,
+                RoomNumber = 202,
+                Capacity = 2,
+                Price = 500,
+                Description = "Deluxe room",
+                Photo = "photo1.jpg"
+            },
+            new Room
+            {
+                Id = 2,
+                Name = "Standard Room",
+                HotelId = 200,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 300,
+                Description = "Standard room",
+                Photo = "photo2.jpg"
+            });
+
+        context.Reservations.AddRange(
+            new Reservation
+            {
+                Id = 1,
+                UserId = 1,
+                RoomId = 1,
+                CheckInDate = DateTime.Today,
+                CheckOutDate = DateTime.Today.AddDays(2),
+                TotalPrice = 1000,
+                Status = "Confirmed"
+            },
+            new Reservation
+            {
+                Id = 2,
+                UserId = 1,
+                RoomId = 2,
+                CheckInDate = DateTime.Today,
+                CheckOutDate = DateTime.Today.AddDays(2),
+                TotalPrice = 600,
+                Status = "Confirmed"
+            });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        // Act
+        var result = await service.GetReservationsByHotelIdAsync(100);
+
+        // Assert
+        Assert.Single(result);
+        Assert.All(result, r => Assert.Equal(100, r.HotelId));
+    }
+
+
     [Fact]
     public async Task GetReservationByIdAsync_Returns_Reservation()
     {
@@ -236,6 +311,8 @@ public class ReservationServiceTest
         // Assert
         Assert.False(result);
     }
+
+
 
     [Fact]
     public async Task CreateReservationAsync_ThrowsException_WhenDatesOverlap()
@@ -472,6 +549,104 @@ public class ReservationServiceTest
     }
 
     [Fact]
+    public async Task CreateReservationAsync_ThrowsUnauthorizedAccessException_WhenRoomBelongsToAnotherHotel()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "Admin",
+            HotelId = 1
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 2,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var reservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(8),
+            Status = "Pending"
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => service.CreateReservationAsync(reservation, 1));
+
+        Assert.Equal(0, await context.Reservations.CountAsync());
+    }
+
+    [Fact]
+    public async Task CreateReservationAsync_CreatesReservation_WhenRoomBelongsToAllowedHotel()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "oki",
+            Email = "oki@test.com",
+            PasswordHash = "hashed",
+            Role = "Admin",
+            HotelId = 1
+        });
+
+        context.Rooms.Add(new Room
+        {
+            Id = 1,
+            Name = "Standard Room",
+            HotelId = 1,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 300,
+            Description = "Standard room",
+            Photo = "photo.jpg"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var reservation = new Reservation
+        {
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(8),
+            Status = "Pending"
+        };
+
+        // Act
+        var result = await service.CreateReservationAsync(reservation, 1);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(900, result.TotalPrice);
+        Assert.Equal(1, await context.Reservations.CountAsync());
+    }
+
+    [Fact]
     public async Task UpdateReservationAsync_ShouldThrowException_WhenUpdatedDatesOverlapWithAnotherReservation()
     {
         // Arrange
@@ -537,6 +712,153 @@ public class ReservationServiceTest
         await Assert.ThrowsAsync<InvalidOperationException>(
             () => service.UpdateReservationAsync(2, updatedReservation));
     }
+
+
+    [Fact]
+    public async Task UpdateReservationAsync_ShouldThrowUnauthorizedAccessException_WhenRoomBelongsToAnotherHotel()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "admin",
+            Email = "admin@test.com",
+            PasswordHash = "hashed",
+            Role = "Admin",
+            HotelId = 1
+        });
+
+        context.Rooms.AddRange(
+            new Room
+            {
+                Id = 1,
+                Name = "Hotel 1 Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 300,
+                Description = "First hotel room",
+                Photo = "photo.jpg"
+            },
+            new Room
+            {
+                Id = 2,
+                Name = "Hotel 2 Room",
+                HotelId = 2,
+                RoomNumber = 201,
+                Capacity = 2,
+                Price = 400,
+                Description = "Second hotel room",
+                Photo = "photo.jpg"
+            });
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(8),
+            TotalPrice = 900,
+            Status = "Confirmed"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            RoomId = 2,
+            CheckInDate = DateTime.Today.AddDays(10),
+            CheckOutDate = DateTime.Today.AddDays(13)
+        };
+
+        // Act & Assert
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(
+            () => service.UpdateReservationAsync(
+                1,
+                updatedReservation,
+                allowedHotelId: 1));
+    }
+
+
+    [Fact]
+    public async Task UpdateReservationAsync_ShouldUpdateReservation_WhenRoomBelongsToAllowedHotel()
+    {
+        // Arrange
+        var context = GetDbContext();
+
+        context.Users.Add(new User
+        {
+            Id = 1,
+            Username = "admin",
+            Email = "admin@test.com",
+            PasswordHash = "hashed",
+            Role = "Admin",
+            HotelId = 1
+        });
+
+        context.Rooms.AddRange(
+            new Room
+            {
+                Id = 1,
+                Name = "Room 101",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 300,
+                Description = "First room",
+                Photo = "photo.jpg"
+            },
+            new Room
+            {
+                Id = 2,
+                Name = "Room 102",
+                HotelId = 1,
+                RoomNumber = 102,
+                Capacity = 2,
+                Price = 400,
+                Description = "Second room",
+                Photo = "photo.jpg"
+            });
+
+        context.Reservations.Add(new Reservation
+        {
+            Id = 1,
+            UserId = 1,
+            RoomId = 1,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(8),
+            TotalPrice = 900,
+            Status = "Confirmed"
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = GetService(context);
+
+        var updatedReservation = new Reservation
+        {
+            RoomId = 2,
+            CheckInDate = DateTime.Today.AddDays(10),
+            CheckOutDate = DateTime.Today.AddDays(13)
+        };
+
+        // Act
+        var result = await service.UpdateReservationAsync(
+            1,
+            updatedReservation,
+            allowedHotelId: 1);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(2, result.RoomId);
+        Assert.Equal(1200, result.TotalPrice);
+    }
+
 
     [Fact]
     public async Task DeleteReservationAsync_ReturnsTrue_WhenAlreadyCancelled()

@@ -91,22 +91,25 @@ namespace HotelBookingAPI.Services
 
             var normalizedRole = UserRoles.Normalize(role);
 
-            if (normalizedRole == UserRoles.Admin)
+            if (normalizedRole == UserRoles.Admin && !hotelId.HasValue)
             {
-                if (!hotelId.HasValue)
-                    throw new InvalidOperationException(
-                        "Admin must be assigned to a hotel.");
+                throw new InvalidOperationException(
+                    "Admin must be assigned to a hotel.");
+            }
 
+            if (normalizedRole == UserRoles.SuperAdmin && hotelId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    "SuperAdmin cannot be assigned to a hotel.");
+            }
+
+            if (hotelId.HasValue)
+            {
                 var hotelExists = await _context.Hotels
                     .AnyAsync(h => h.Id == hotelId.Value);
 
                 if (!hotelExists)
                     throw new InvalidOperationException("Hotel not found.");
-            }
-            else if (hotelId.HasValue)
-            {
-                throw new InvalidOperationException(
-                    "Only Admin users can be assigned to a hotel.");
             }
 
             var user = new User
