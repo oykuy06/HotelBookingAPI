@@ -1,85 +1,102 @@
 # Hotel Booking API 🏨
 
-A comprehensive backend API for hotel reservation system built with ASP.NET Core, featuring full CRUD operations, user authentication, and role-based access control.
+A RESTful hotel booking API built with ASP.NET Core 8 and Entity Framework Core. The project provides hotel, room, reservation, and user management with JWT authentication and role-based authorization.
 
 ## 🚀 Features
-- JWT-based Authentication & Authorization
-- Hotel and Room management with admin panel
-- Booking reservation system
-- User profile management
-- Password reset functionality
+
+- JWT-based authentication and authorization
+- Refresh token rotation
+- Password reset functionality via email
+- Secure password hashing using PBKDF2
+- Role-based access control (User, Admin, SuperAdmin)
+- Hotel and room management
+- Reservation creation and management
+- Reservation date validation and availability checks
+- Role-based data access and hotel-level authorization
+- User profile and account management
+- Centralized exception handling
 
 ## 💻 Tech Stack
-- **Backend:** ASP.NET Core 6.0
-- **Database:** SQL Server with Entity Framework Core
-- **Authentication:** JWT Bearer Tokens
-- **Documentation:** Swagger/OpenAPI
 
-## 📦 Quick Start
+- **Backend:** ASP.NET Core 8 Web API
+- **Language:** C#
+- **Database:** Microsoft SQL Server
+- **ORM:** Entity Framework Core 8
+- **Authentication:** JWT Bearer Authentication
+- **API Documentation:** Swagger / OpenAPI
+- **Testing:** xUnit, Moq, EF Core InMemory
+- **CI:** GitHub Actions
 
-bash
-# Clone repository
-git clone https://github.com/oykuy06/HotelBookingAPI
-cd HotelBookingAPI
+## 🏗️ Project Structure
 
-# Restore dependencies
-dotnet restore
-
-# Run application
-dotnet run
-🔗 API Endpoints
-👤 Authentication
-POST /api/Auth/register - Create new user account
-
-POST /api/Auth/login - User authentication
-
-POST /api/Auth/forgot-password - Request password reset
-
-POST /api/Auth/reset-password - Reset password with token
-
-🏨 Hotel Management
-GET /api/Hotel - Get all hotels
-
-POST /api/Hotel - Create new hotel
-
-GET /api/Hotel/{id} - Get hotel details
-
-PUT /api/Hotel/{id} - Update hotel information
-
-DELETE /api/Hotel/{id} - Delete hotel
-
-🛏️ Room Management
-GET /api/Room - Get all rooms with filters
-
-POST /api/Room - Create new room
-
-GET /api/Room/{id} - Get room details
-
-PUT /api/Room/{id} - Update room information
-
-DELETE /api/Room/{id} - Delete room
-
-📅 Reservation System
-POST /api/Reservation - Create new booking
-
-GET /api/Reservation/me - Get user's reservations
-
-GET /api/Reservation/{id} - Get reservation details
-
-GET /api/Reservation/all - Get all reservations
-
-👥 User Management
-GET /api/User/{id} - Get user profile
-
-PUT /api/User/{id} - Update user profile
-
-DELETE /api/User/{id} - Delete user account
-
-🏗️ Architecture
-text
+```text
 HotelBookingAPI/
-├── Controllers/     # API endpoints
-├── Models/          # Data models & DTOs
-├── Services/        # Business logic layer
-├── Data/            # Database context & entities
-└── Program.cs       # Dependency injection & configuration
+├── Controllers/       # API endpoints
+├── Dto/               # Request and response DTOs
+├── Entity/            # Entities and database context
+├── Services/          # Business logic
+├── Middlewares/       # Custom middleware
+├── Properties/        # Project configuration
+└── Program.cs         # Application configuration
+```
+
+## 🔐 Authentication & Authorization
+
+The API uses JWT Bearer Authentication to secure endpoints.
+
+Three authorization roles are supported:
+
+- **User:** Can manage their own profile and reservations.
+- **Admin:** Can manage resources associated with their assigned hotel.
+- **SuperAdmin:** Has system-wide administrative access.
+
+Refresh tokens are rotated during token renewal, and password reset operations invalidate existing refresh tokens.
+
+## 🧪 Testing
+
+The project includes automated tests written with xUnit and Moq.
+
+Tests cover key application services and authentication-related operations.
+
+## ⚙️ Configuration
+
+Before running the application, configure the required settings:
+
+- SQL Server connection string
+- JWT secret key
+- SMTP settings for password reset emails
+
+Sensitive configuration values are managed through User Secrets or environment variables rather than being stored in the repository.
+
+## 📦 Getting Started
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/oykuy06/HotelBookingAPI.git
+cd HotelBookingAPI
+```
+
+### 2. Restore dependencies
+
+```bash
+dotnet restore
+```
+
+### 3. Configure application settings
+
+Set up the required database connection, JWT secret, and SMTP configuration.
+
+### 4. Apply database migrations
+
+```bash
+dotnet ef database update
+```
+
+### 5. Run the application
+
+```bash
+dotnet run
+```
+
+Once the application is running, access the Swagger UI to explore the available API endpoints.
