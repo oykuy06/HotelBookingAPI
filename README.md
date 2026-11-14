@@ -31,13 +31,20 @@ A RESTful hotel booking API built with ASP.NET Core 8 and Entity Framework Core.
 
 ```text
 HotelBookingAPI/
-├── Controllers/       # API endpoints
-├── Dto/               # Request and response DTOs
-├── Entity/            # Entities and database context
-├── Services/          # Business logic
-├── Middlewares/       # Custom middleware
-├── Properties/        # Project configuration
-└── Program.cs         # Application configuration
+├── HotelBookingAPI/
+│   ├── Controllers/
+│   ├── Dto/
+│   ├── Entity/
+│   ├── Services/
+│   ├── Middlewares/
+│   ├── Properties/
+│   └── Program.cs
+│
+├── HotelBookingAPITests/
+│   └── Tests/
+│
+├── HotelBookingAPI.sln
+└── README.md
 ```
 
 ## 🔐 Authentication & Authorization
