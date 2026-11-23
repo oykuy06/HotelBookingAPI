@@ -20,7 +20,7 @@ public class AuthServiceTest
     {
         // InMemory DB
         var options = new DbContextOptionsBuilder<HotelBookingDBContext>()
-            .UseInMemoryDatabase(databaseName: "AuthServiceTestDb")
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new HotelBookingDBContext(options);

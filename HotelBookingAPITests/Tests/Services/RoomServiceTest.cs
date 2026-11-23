@@ -439,5 +439,110 @@ namespace HotelBookingAPI.Tests.Services
 
             Assert.Empty(context.Rooms);
         }
+
+        [Fact]
+        public async Task CreateRoomAsync_DuplicateRoomNumber_ThrowsException()
+        {
+            var context = GetDbContext();
+
+            context.Hotels.Add(new Hotel
+            {
+                Id = 1,
+                Name = "Test Hotel",
+                Description = "Description",
+                Address = "Ankara",
+                Photo = "http://example.com/hotel.jpg"
+            });
+
+            context.Rooms.Add(new Room
+            {
+                Name = "Standard Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 2,
+                Price = 100,
+                Description = "Description",
+                Photo = "http://example.com/room.jpg"
+            });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var duplicateRoom = new Room
+            {
+                Name = "Deluxe Room",
+                HotelId = 1,
+                RoomNumber = 101,
+                Capacity = 3,
+                Price = 200,
+                Description = "Description",
+                Photo = "http://example.com/another.jpg"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateRoomAsync(duplicateRoom));
+
+            Assert.Single(context.Rooms);
+        }
+
+        [Fact]
+        public async Task UpdateRoomAsync_DuplicateRoomNumber_ThrowsException()
+        {
+            var context = GetDbContext();
+
+            context.Hotels.Add(new Hotel
+            {
+                Id = 1L,
+                Name = "Test Hotel",
+                Description = "Description",
+                Address = "Ankara",
+                Photo = "http://example.com/hotel.jpg"
+            });
+
+            context.Rooms.AddRange(
+                new Room
+                {
+                    Id = 1L,
+                    Name = "Room One",
+                    HotelId = 1L,
+                    RoomNumber = 101,
+                    Capacity = 2,
+                    Price = 100,
+                    Description = "Description",
+                    Photo = "http://example.com/one.jpg"
+                },
+                new Room
+                {
+                    Id = 2L,
+                    Name = "Room Two",
+                    HotelId = 1L,
+                    RoomNumber = 102,
+                    Capacity = 2,
+                    Price = 100,
+                    Description = "Description",
+                    Photo = "http://example.com/two.jpg"
+                });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var updatedRoom = new Room
+            {
+                Name = "Updated Room",
+                HotelId = 1L,
+                RoomNumber = 102,
+                Capacity = 3,
+                Price = 200,
+                Description = "Updated description",
+                Photo = "http://example.com/updated.jpg"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.UpdateRoomAsync(1L, updatedRoom));
+
+            Assert.Equal(101, (await context.Rooms.FindAsync(1L))!.RoomNumber);
+        }
     }
 }

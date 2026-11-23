@@ -73,6 +73,9 @@ namespace HotelBookingAPI.Services
 
         public async Task<Hotel> CreateHotelAsync(Hotel hotel)
         {
+            if (await _context.Hotels.AnyAsync(h => h.Name == hotel.Name))
+                throw new InvalidOperationException("Hotel name already exists");
+
             _context.Hotels.Add(hotel);
             await _context.SaveChangesAsync();
             return hotel;
@@ -83,6 +86,12 @@ namespace HotelBookingAPI.Services
             var existingHotel = await _context.Hotels.FindAsync(id);
             if (existingHotel == null)
                 return null;
+
+            if (await _context.Hotels.AnyAsync(h =>
+    h.Id != id && h.Name == hotel.Name))
+            {
+                throw new InvalidOperationException("Hotel name already exists");
+            }
 
             existingHotel.Name = hotel.Name;
             existingHotel.Description = hotel.Description;

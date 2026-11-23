@@ -6,6 +6,7 @@ using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace HotelBookingAPI.Tests.Controllers
 {
@@ -13,11 +14,16 @@ namespace HotelBookingAPI.Tests.Controllers
     {
         private readonly Mock<IAuthService> _authServiceMock;
         private readonly AuthController _controller;
+        private readonly Mock<ILogger<AuthController>> _loggerMock;
 
         public AuthControllerTest()
         {
             _authServiceMock = new Mock<IAuthService>();
-            _controller = new AuthController(_authServiceMock.Object);
+            _loggerMock = new Mock<ILogger<AuthController>>();
+
+            _controller = new AuthController(
+                _authServiceMock.Object,
+                _loggerMock.Object);
         }
 
         [Fact] //not parameter
@@ -102,11 +108,16 @@ namespace HotelBookingAPI.Tests.Controllers
         [Fact]
         public async Task RefreshToken_Invalid_ReturnsUnauthorized()
         {
+            var dto = new RefreshTokenDto
+            {
+                RefreshToken = "invalid"
+            };
+
             _authServiceMock
-                .Setup(x => x.RefreshAccessTokenAsync("invalid"))
+                .Setup(x => x.RefreshAccessTokenAsync(dto.RefreshToken))
                 .ReturnsAsync((AuthResponseDto?)null);
 
-            var result = await _controller.RefreshToken("invalid");
+            var result = await _controller.RefreshToken(dto);
 
             Assert.IsType<UnauthorizedObjectResult>(result);
         }
@@ -114,15 +125,20 @@ namespace HotelBookingAPI.Tests.Controllers
         [Fact]
         public async Task RefreshToken_Valid_ReturnsOk()
         {
+            var dto = new RefreshTokenDto
+            {
+                RefreshToken = "valid"
+            };
+
             _authServiceMock
-                .Setup(x => x.RefreshAccessTokenAsync("valid"))
+                .Setup(x => x.RefreshAccessTokenAsync(dto.RefreshToken))
                 .ReturnsAsync(new AuthResponseDto
                 {
                     AccessToken = "newAccessToken",
                     RefreshToken = "newRefreshToken"
                 });
 
-            var result = await _controller.RefreshToken("valid");
+            var result = await _controller.RefreshToken(dto);
 
             Assert.IsType<OkObjectResult>(result);
         }
@@ -146,8 +162,43 @@ namespace HotelBookingAPI.Tests.Controllers
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
 
-            _authServiceMock.Verify(
-                s => s.ForgotPasswordAsync(dto.Email),
+            var response = Assert.IsType<string>(
+                okResult.Value.GetType()
+                    .GetProperty("message")!
+                    .GetValue(okResult.Value));
+
+            Assert.Equal(
+                "If the account exists, a reset link has been sent.",
+                response);
+        }
+
+        [Fact]
+        public async Task ForgotPassword_EmailSendingFails_ReturnsOk()
+        {
+            // Arrange
+            var dto = new ForgotPasswordDto
+            {
+                Email = "user@test.com"
+            };
+
+            _authServiceMock
+                .Setup(s => s.ForgotPasswordAsync(dto.Email))
+                .ThrowsAsync(new Exception("SMTP connection failed"));
+
+            // Act
+            var result = await _controller.ForgotPassword(dto);
+
+            // Assert
+            Assert.IsType<OkObjectResult>(result);
+
+            _loggerMock.Verify(
+                x => x.Log(
+                    LogLevel.Error,
+                    It.IsAny<EventId>(),
+                    It.Is<It.IsAnyType>((v, t) =>
+                        v.ToString()!.Contains("Failed to send password reset email.")),
+                    It.IsAny<Exception>(),
+                    It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.Once);
         }
 
@@ -170,9 +221,14 @@ namespace HotelBookingAPI.Tests.Controllers
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
 
-            _authServiceMock.Verify(
-                s => s.ForgotPasswordAsync(dto.Email),
-                Times.Once);
+            var response = Assert.IsType<string>(
+                okResult.Value.GetType()
+                    .GetProperty("message")!
+                    .GetValue(okResult.Value));
+
+            Assert.Equal(
+                "If the account exists, a reset link has been sent.",
+                response);
         }
     }
 }

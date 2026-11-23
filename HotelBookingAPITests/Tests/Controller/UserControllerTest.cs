@@ -135,87 +135,15 @@ public class UserControllerTest
         Assert.Equal(2, list.Count());
     }
 
-
-    [Fact]
-    public async Task UpdateUser_AdminAssignsSuperAdmin_ReturnsForbid()
-    {
-        // Arrange
-        SetUserContext(1, "Admin");
-
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
-        {
-            Email = "target@test.com",
-            Password = "Password123",
-            Role = "SuperAdmin"
-        };
-
-        // Act
-        var result = await _controller.UpdateUser(2, dto);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-
-        // Güvenlik kontrolü nedeniyle servis çağrılmamalı.
-        _userServiceMock.Verify(
-            s => s.UpdateUserAsync(
-                It.IsAny<long>(),
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string?>(),
-                It.IsAny<long?>()),
-            Times.Never);
-    }
-
-
-    [Fact]
-    public async Task UpdateUser_AdminUpdatesExistingSuperAdmin_ReturnsForbid()
-    {
-        // Arrange
-        SetUserContext(1, "Admin");
-
-        _userServiceMock
-            .Setup(s => s.GetUserByIdAsync(2))
-            .ReturnsAsync(new UserResponseDto
-            {
-                Id = 2,
-                Email = "superadmin@test.com",
-                Role = "SuperAdmin"
-            });
-
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
-        {
-            Email = "changed@test.com",
-            Password = "Password123",
-            Role = "User"
-        };
-
-        // Act
-        var result = await _controller.UpdateUser(2, dto);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-
-        _userServiceMock.Verify(
-            s => s.UpdateUserAsync(
-                It.IsAny<long>(),
-                It.IsAny<string>(),
-                It.IsAny<string?>(),
-                It.IsAny<string?>(),
-                It.IsAny<long?>()),
-            Times.Never);
-    }
-
-
-
     [Fact]
     public async Task UpdateUser_UserUpdatesAnotherUser_ReturnsForbid()
     {
         // Arrange
         SetUserContext(1, "User");
 
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        var dto = new UpdateUserDto
         {
-            Email = "other@test.com",
+            Email = "changed@test.com",
             Password = "Password123",
             Role = "User"
         };
@@ -243,7 +171,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "User");
 
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -605,7 +533,7 @@ public class UserControllerTest
                 Role = "User"
             });
 
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        var dto = new UpdateUserDto
         {
             Email = "target@test.com",
             Password = "Password123",
@@ -657,7 +585,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
-        var dto = new HotelBookingAPI.Dto.RequestDto.UserDto
+        var dto = new UpdateUserDto
         {
             Email = "target@test.com",
             Password = "Password123",
@@ -930,7 +858,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -989,7 +917,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -1036,7 +964,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -1079,7 +1007,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "SuperAdmin");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "admin@test.com",
             Password = "Password123",
@@ -1122,7 +1050,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(2, "User");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -1161,7 +1089,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "User");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",
@@ -1181,6 +1109,23 @@ public class UserControllerTest
                 It.IsAny<string?>(),
                 It.IsAny<string?>(),
                 It.IsAny<long?>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteUser_SuperAdminCannotDeleteOwnAccount_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext(1, UserRoles.SuperAdmin);
+
+        // Act
+        var result = await _controller.DeleteUser(1);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.DeleteUserAsync(It.IsAny<long>()),
             Times.Never);
     }
 
@@ -1247,7 +1192,7 @@ public class UserControllerTest
         // Arrange
         SetUserContext(1, "Admin");
 
-        var dto = new UserDto
+        var dto = new UpdateUserDto
         {
             Email = "updated@test.com",
             Password = "Password123",

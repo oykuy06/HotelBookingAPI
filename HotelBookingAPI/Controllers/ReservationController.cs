@@ -1,4 +1,5 @@
 ﻿
+using HotelBookingAPI.Constants;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
@@ -24,10 +25,10 @@ namespace HotelBookingAPI.Controllers
 
 
         [HttpGet]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> GetAllReservations()
         {
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -52,7 +53,7 @@ namespace HotelBookingAPI.Controllers
 
 
         [HttpGet("{id:long}")]
-        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> GetReservationById(long id)
         {
             var reservation = await _reservationService.GetReservationByIdAsync(id);
@@ -65,14 +66,14 @@ namespace HotelBookingAPI.Controllers
             if (!long.TryParse(userIdClaim, out var userId))
                 return Unauthorized();
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
                 if (adminHotelId == null || reservation.HotelId != adminHotelId.Value)
                     return Forbid();
             }
-            else if (User.IsInRole("User") && reservation.UserId != userId)
+            else if (User.IsInRole(UserRoles.User) && reservation.UserId != userId)
             {
                 return Forbid();
             }
@@ -81,13 +82,10 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> CreateReservation(
     [FromBody] CreateReservationDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!long.TryParse(userIdClaim, out var userId))
@@ -96,7 +94,7 @@ namespace HotelBookingAPI.Controllers
             long? allowedHotelId = null;
 
             // Admin yalnızca kendi otelinin odalarına rezervasyon oluşturabilir.
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 allowedHotelId =
                     await _userService.GetHotelIdByUserIdAsync(userId);
@@ -147,14 +145,11 @@ namespace HotelBookingAPI.Controllers
 
 
         [HttpPut("{id:long}")]
-        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> UpdateReservation(
             long id,
             [FromBody] UpdateReservationDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
             if (!long.TryParse(userIdClaim, out var userId))
@@ -168,7 +163,7 @@ namespace HotelBookingAPI.Controllers
 
             long? allowedHotelId = null;
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 allowedHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
@@ -178,7 +173,7 @@ namespace HotelBookingAPI.Controllers
                     return Forbid();
                 }
             }
-            else if (User.IsInRole("User") &&
+            else if (User.IsInRole(UserRoles.User) &&
                      existingReservation.UserId != userId)
             {
                 return Forbid();
@@ -219,7 +214,7 @@ namespace HotelBookingAPI.Controllers
 
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "User,Admin,SuperAdmin")]
+        [Authorize(Roles = UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteReservation(long id)
         {
             var reservation = await _reservationService.GetReservationByIdAsync(id);
@@ -232,14 +227,14 @@ namespace HotelBookingAPI.Controllers
             if (!long.TryParse(userIdClaim, out var userId))
                 return Unauthorized();
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var adminHotelId = await _userService.GetHotelIdByUserIdAsync(userId);
 
                 if (adminHotelId == null || reservation.HotelId != adminHotelId.Value)
                     return Forbid();
             }
-            else if (User.IsInRole("User") && reservation.UserId != userId)
+            else if (User.IsInRole(UserRoles.User) && reservation.UserId != userId)
             {
                 return Forbid();
             }

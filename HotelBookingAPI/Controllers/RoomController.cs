@@ -1,4 +1,5 @@
-﻿using HotelBookingAPI.Dto.RequestDto;
+﻿using HotelBookingAPI.Constants;
+using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
@@ -26,20 +27,8 @@ namespace HotelBookingAPI.Controllers
         public async Task<IActionResult> GetAllRooms()
         {
             var rooms = await _roomService.GetAllRoomsAsync();
-            var roomDtos = rooms.Select(r => new RoomResponseDto
-            {
-                Id = r.Id,
-                Name = r.Name,
-                HotelId = r.HotelId,
-                HotelName = r.HotelName,
-                RoomNumber = r.RoomNumber,
-                Capacity = r.Capacity,
-                Price = r.Price,
-                Description = r.Description,
-                Photo = r.Photo
-            });
 
-            return Ok(roomDtos);
+            return Ok(rooms);
         }
 
         [HttpGet("{id:long}")]
@@ -47,31 +36,19 @@ namespace HotelBookingAPI.Controllers
         public async Task<IActionResult> GetRoomById(long id)
         {
             var room = await _roomService.GetRoomByIdAsync(id);
+
             if (room == null)
                 return NotFound(new { message = "Room not found" });
 
-            var roomDto = new RoomResponseDto
-            {
-                Id = room.Id,
-                Name = room.Name,
-                HotelId = room.HotelId,
-                HotelName = room.HotelName,
-                RoomNumber = room.RoomNumber,
-                Capacity = room.Capacity,
-                Price = room.Price,
-                Description = room.Description,
-                Photo = room.Photo
-            };
-
-            return Ok(roomDto);
+            return Ok(room);
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> CreateRoom([FromBody] RoomDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (string.IsNullOrWhiteSpace(dto.Photo))
+                return BadRequest(new { message = "Photo is required." });
 
             if (!string.IsNullOrEmpty(dto.Photo) &&
                 !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
@@ -81,7 +58,7 @@ namespace HotelBookingAPI.Controllers
 
             long? hotelId;
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -125,6 +102,10 @@ namespace HotelBookingAPI.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
             var responseDto = new RoomResponseDto
             {
@@ -146,12 +127,9 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpPut("{id:long}")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> UpdateRoom(long id, [FromBody] RoomDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             if (!string.IsNullOrEmpty(dto.Photo) &&
                 !Uri.IsWellFormedUriString(dto.Photo, UriKind.Absolute))
             {
@@ -163,7 +141,7 @@ namespace HotelBookingAPI.Controllers
             if (existingRoom == null)
                 return NotFound(new { message = "Room not found" });
 
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
@@ -180,16 +158,25 @@ namespace HotelBookingAPI.Controllers
                     return Forbid();
             }
 
-            var updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
+            Room? updatedRoom;
+
+            try
             {
-                Name = dto.Name,
-                HotelId = existingRoom.HotelId,
-                RoomNumber = dto.RoomNumber,
-                Capacity = dto.Capacity,
-                Price = dto.Price,
-                Description = dto.Description,
-                Photo = dto.Photo
-            });
+                updatedRoom = await _roomService.UpdateRoomAsync(id, new Room
+                {
+                    Name = dto.Name,
+                    HotelId = existingRoom.HotelId,
+                    RoomNumber = dto.RoomNumber,
+                    Capacity = dto.Capacity,
+                    Price = dto.Price,
+                    Description = dto.Description,
+                    Photo = dto.Photo
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(new { message = ex.Message });
+            }
 
             if (updatedRoom == null)
                 return NotFound(new { message = "Room not found" });
@@ -198,10 +185,10 @@ namespace HotelBookingAPI.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
+        [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> DeleteRoom(long id)
         {
-            if (User.IsInRole("Admin"))
+            if (User.IsInRole(UserRoles.Admin))
             {
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 

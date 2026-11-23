@@ -37,6 +37,7 @@ namespace HotelBookingAPI.Services
                         UserName = u.Username,
                         RoomId = r.RoomId,
                         RoomName = r.Room.Name,
+                        HotelId = r.Room.HotelId,
                         CheckInDate = r.CheckInDate,
                         CheckOutDate = r.CheckOutDate,
                         TotalPrice = (decimal)r.TotalPrice,
@@ -70,6 +71,7 @@ namespace HotelBookingAPI.Services
                         UserName = u.Username,
                         RoomId = r.RoomId,
                         RoomName = r.Room.Name,
+                        HotelId = r.Room.HotelId,
                         CheckInDate = r.CheckInDate,
                         CheckOutDate = r.CheckOutDate,
                         TotalPrice = (decimal)r.TotalPrice,
@@ -168,18 +170,11 @@ namespace HotelBookingAPI.Services
             {
                 var normalizedRole = UserRoles.Normalize(role);
 
-                if (normalizedRole == UserRoles.Admin)
-                {
-                    if (!hotelId.HasValue)
-                        throw new InvalidOperationException(
-                            "Admin must be assigned to a hotel.");
-                }
+                if (normalizedRole == UserRoles.Admin && !hotelId.HasValue)
+                    throw new InvalidOperationException("Admin users must be assigned to a hotel.");
 
                 if (normalizedRole == UserRoles.SuperAdmin && hotelId.HasValue)
-                {
-                    throw new InvalidOperationException(
-                        "SuperAdmin cannot be assigned to a hotel.");
-                }
+                    throw new InvalidOperationException("SuperAdmin users cannot be assigned to a hotel.");
 
                 if (hotelId.HasValue)
                 {
@@ -190,9 +185,10 @@ namespace HotelBookingAPI.Services
                         throw new InvalidOperationException("Hotel not found.");
                 }
 
-                user.HotelId = normalizedRole == UserRoles.SuperAdmin
-                    ? null
-                    : hotelId;
+                if (normalizedRole == UserRoles.SuperAdmin)
+                    user.HotelId = null;
+                else if (hotelId.HasValue)
+                    user.HotelId = hotelId;
 
                 user.Role = normalizedRole;
             }

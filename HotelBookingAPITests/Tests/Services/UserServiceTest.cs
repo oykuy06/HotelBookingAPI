@@ -535,7 +535,43 @@ namespace HotelBookingAPI.Tests.Services
             Assert.Equal("user1@test.com", userList[0].Email);
         }
 
-        
+
+        [Fact]
+        public async Task UpdateUserAsync_WithoutRoleOrHotelId_ShouldPreserveExistingValues()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var user = new User
+            {
+                Email = "old@mail.com",
+                Username = "old",
+                PasswordHash = "existing-hash",
+                Role = UserRoles.Admin,
+                HotelId = 5
+            };
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var updatedUser = await service.UpdateUserAsync(
+                user.Id,
+                email: "new@mail.com"
+            );
+
+            // Assert
+            Assert.NotNull(updatedUser);
+            Assert.Equal("new@mail.com", updatedUser.Email);
+            Assert.Equal(UserRoles.Admin, updatedUser.Role);
+            Assert.Equal(5, updatedUser.HotelId);
+            Assert.Equal("existing-hash", updatedUser.PasswordHash);
+        }
+
 
     }
+
+
 }

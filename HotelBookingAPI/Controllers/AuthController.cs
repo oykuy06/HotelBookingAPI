@@ -10,10 +10,14 @@ namespace HotelBookingAPI.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
+        private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IAuthService authService)
+        public AuthController(
+    IAuthService authService,
+    ILogger<AuthController> logger)
         {
             _authService = authService;
+            _logger = logger;
         }
 
         [HttpPost("register")]
@@ -43,12 +47,19 @@ namespace HotelBookingAPI.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
         {
-            var token = await _authService.ForgotPasswordAsync(dto.Email);
+            try
+            {
+                await _authService.ForgotPasswordAsync(dto.Email);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send password reset email.");
+            }
 
-            if (token == null)
-                return Ok(new { message = "If the account exists, a reset link has been sent." });
-
-            return Ok(new { message = "If the account exists, a reset link has been sent." });
+            return Ok(new
+            {
+                message = "If the account exists, a reset link has been sent."
+            });
         }
 
         [HttpPost("reset-password")]
@@ -63,9 +74,9 @@ namespace HotelBookingAPI.Controllers
 
         [HttpPost("refresh-token")]
         [AllowAnonymous]
-        public async Task<IActionResult> RefreshToken([FromBody] string refreshToken)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDto dto)
         {
-            var authResponse = await _authService.RefreshAccessTokenAsync(refreshToken);
+            var authResponse = await _authService.RefreshAccessTokenAsync(dto.RefreshToken);
 
             if (authResponse == null)
                 return Unauthorized(new { message = "Invalid or expired refresh token" });

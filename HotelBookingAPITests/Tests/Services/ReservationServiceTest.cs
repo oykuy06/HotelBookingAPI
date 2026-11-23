@@ -229,8 +229,8 @@ public class ReservationServiceTest
         {
             UserId = 1,
             RoomId = 1,
-            CheckInDate = DateTime.Today,
-            CheckOutDate = DateTime.Today.AddDays(3),
+            CheckInDate = DateTime.Today.AddDays(1),
+            CheckOutDate = DateTime.Today.AddDays(4),
             TotalPrice = 0,
             Status = "Confirmed"
         };

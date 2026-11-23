@@ -47,6 +47,37 @@ namespace HotelBookingAPI.Tests.Services
         }
 
         [Fact]
+        public async Task CreateHotelAsync_DuplicateName_ThrowsException()
+        {
+            var context = GetDbContext();
+
+            context.Hotels.Add(new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Description",
+                Address = "Ankara",
+                Photo = "http://example.com/photo.jpg"
+            });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var duplicateHotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Another description",
+                Address = "Istanbul",
+                Photo = "http://example.com/another.jpg"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateHotelAsync(duplicateHotel));
+
+            Assert.Single(context.Hotels);
+        }
+
+        [Fact]
         public async Task GetHotelByIdAsync_ShouldReturnHotel()
         {
             // Arrange
@@ -118,6 +149,45 @@ namespace HotelBookingAPI.Tests.Services
 
             // Assert
             Assert.Equal(2, result.Count());
+        }
+
+        [Fact]
+        public async Task UpdateHotelAsync_DuplicateName_ThrowsException()
+        {
+            var context = GetDbContext();
+
+            context.Hotels.AddRange(
+                new Hotel
+                {
+                    Name = "Hotel One",
+                    Description = "Description",
+                    Address = "Ankara",
+                    Photo = "http://example.com/one.jpg"
+                },
+                new Hotel
+                {
+                    Name = "Hotel Two",
+                    Description = "Description",
+                    Address = "Istanbul",
+                    Photo = "http://example.com/two.jpg"
+                });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var hotelToUpdate = new Hotel
+            {
+                Name = "Hotel Two",
+                Description = "Updated",
+                Address = "Ankara",
+                Photo = "http://example.com/updated.jpg"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+    () => service.UpdateHotelAsync(1L, hotelToUpdate));
+
+            Assert.Equal("Hotel One", (await context.Hotels.FindAsync(1L))!.Name);
         }
 
         [Fact]

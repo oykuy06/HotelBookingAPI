@@ -98,9 +98,6 @@ namespace HotelBookingAPI.Controllers
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
         public async Task<IActionResult> CreateUser([FromBody] UserDto dto)
         {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
-
             string normalizedRole;
 
             try
@@ -168,7 +165,7 @@ namespace HotelBookingAPI.Controllers
 
         [HttpPut("{id:long}")]
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin + "," + UserRoles.User)]
-        public async Task<IActionResult> UpdateUser(long id, [FromBody] UserDto dto)
+        public async Task<IActionResult> UpdateUser(long id, [FromBody] UpdateUserDto dto)
         {
             var currentUserId = User.FindFirst(
                 ClaimTypes.NameIdentifier)?.Value;
@@ -180,21 +177,21 @@ namespace HotelBookingAPI.Controllers
             if (!isAdmin && currentUserId != id.ToString())
                 return Forbid();
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            string? normalizedRole = null;
 
-            string normalizedRole;
-
-            try
+            if (!string.IsNullOrWhiteSpace(dto.Role))
             {
-                normalizedRole = UserRoles.Normalize(dto.Role);
-            }
-            catch (ArgumentException)
-            {
-                return BadRequest(new { message = "Invalid role" });
+                try
+                {
+                    normalizedRole = UserRoles.Normalize(dto.Role);
+                }
+                catch (ArgumentException)
+                {
+                    return BadRequest(new { message = "Invalid role" });
+                }
             }
 
-            // Admin yalnızca kendi otelindeki kullanıcıları güncelleyebilir.
+            // Admin yalnızca kendi otelindeki normal kullanıcıları güncelleyebilir.
             if (isAdmin && !isSuperAdmin)
             {
                 if (!long.TryParse(currentUserId, out var adminUserId))
@@ -211,7 +208,8 @@ namespace HotelBookingAPI.Controllers
                 if (targetUser == null)
                     return NotFound();
 
-                if (targetUser.Role != UserRoles.User) return Forbid();
+                if (targetUser.Role != UserRoles.User)
+                    return Forbid();
 
                 var targetHotelId = await _userService.GetHotelIdByUserIdAsync(id);
 
@@ -219,9 +217,11 @@ namespace HotelBookingAPI.Controllers
                     return Forbid();
             }
 
-            // Yalnızca SuperAdmin rol ve otel atamasını değiştirebilir.
+            // Rol ve otel atamasını yalnızca SuperAdmin değiştirebilir.
             var role = isSuperAdmin ? normalizedRole : null;
-            var hotelId = isSuperAdmin ? dto.HotelId : null;
+            var hotelId = isSuperAdmin && normalizedRole != null
+                ? dto.HotelId
+                : null;
 
             User? user;
 
@@ -258,16 +258,20 @@ namespace HotelBookingAPI.Controllers
         {
             var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
 
+            var currentUserId = User.FindFirst(
+                ClaimTypes.NameIdentifier)?.Value;
+
+            if (!long.TryParse(currentUserId, out var currentUserIdLong))
+                return Forbid();
+
+            // SuperAdmin kendi hesabını silemez.
+            if (isSuperAdmin && currentUserIdLong == id)
+                return Forbid();
+
             if (!isSuperAdmin)
             {
-                var currentUserId = User.FindFirst(
-                    ClaimTypes.NameIdentifier)?.Value;
-
-                if (!long.TryParse(currentUserId, out var adminUserId))
-                    return Forbid();
-
                 var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
-                    adminUserId);
+                    currentUserIdLong);
 
                 if (!adminHotelId.HasValue)
                     return Forbid();

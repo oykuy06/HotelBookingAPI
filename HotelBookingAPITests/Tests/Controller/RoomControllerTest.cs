@@ -56,7 +56,7 @@ public class RoomControllerTest
             Capacity = 2,
             Price = 500,
             Description = "Test room",
-            Photo = null
+            Photo = "https://example.com/room.jpg"
         };
     }
 
@@ -225,6 +225,23 @@ public class RoomControllerTest
         var result = await _controller.CreateRoom(CreateRoomDto(99));
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task CreateRoom_WithoutPhoto_ReturnsBadRequest()
+    {
+        SetUser("SuperAdmin");
+
+        var dto = CreateRoomDto(1);
+        dto.Photo = null;
+
+        var result = await _controller.CreateRoom(dto);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+
+        _roomServiceMock.Verify(
+            s => s.CreateRoomAsync(It.IsAny<Room>()),
+            Times.Never);
     }
 
     [Fact]

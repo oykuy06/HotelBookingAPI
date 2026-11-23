@@ -62,6 +62,13 @@ namespace HotelBookingAPI.Services
             if (hotel == null)
                 throw new ArgumentException("Hotel not found.");
 
+            if (await _context.Rooms.AnyAsync(r =>
+                r.HotelId == room.HotelId &&
+                r.RoomNumber == room.RoomNumber))
+            {
+                throw new InvalidOperationException("Room number already exists in this hotel");
+            }
+
             if (!string.IsNullOrEmpty(room.Photo) &&
                 !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
             {
@@ -83,6 +90,14 @@ namespace HotelBookingAPI.Services
 
             if (existingRoom == null)
                 return null;
+
+            if (await _context.Rooms.AnyAsync(r =>
+    r.Id != id &&
+    r.HotelId == existingRoom.HotelId &&
+    r.RoomNumber == room.RoomNumber))
+            {
+                throw new InvalidOperationException("Room number already exists in this hotel");
+            }
 
             if (!string.IsNullOrEmpty(room.Photo) &&
                 !Uri.IsWellFormedUriString(room.Photo, UriKind.Absolute))
