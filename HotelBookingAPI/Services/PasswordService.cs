@@ -49,7 +49,6 @@ namespace HotelBookingAPI.Services
 
             return token;
         }
-
         public async Task<PasswordReset?> GetValidResetTokenAsync(string token)
         {
             return await _context.PasswordResets
@@ -59,7 +58,6 @@ namespace HotelBookingAPI.Services
                     !t.IsUsed &&
                     t.Expiration > DateTime.UtcNow);
         }
-
         public async Task SendResetEmailAsync(string email, string token)
         {
             var smtpHost = _config["Smtp:Host"];

@@ -1,10 +1,8 @@
-﻿
-using HotelBookingAPI.Entity;
+﻿using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Xunit;
 
 public class PasswordServiceTest
 {
@@ -13,14 +11,12 @@ public class PasswordServiceTest
 
     public PasswordServiceTest()
     {
-        // InMemory DB
         var options = new DbContextOptionsBuilder<HotelBookingDBContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new HotelBookingDBContext(options);
 
-        // Fake IConfiguration
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {

@@ -6,7 +6,6 @@ using HotelBookingAPI.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Moq;
-using Xunit;
 
 public class AuthServiceTest
 {
@@ -18,18 +17,15 @@ public class AuthServiceTest
 
     public AuthServiceTest()
     {
-        // InMemory DB
         var options = new DbContextOptionsBuilder<HotelBookingDBContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new HotelBookingDBContext(options);
 
-        // Mock services
         _passwordHashServiceMock = new Mock<IPasswordHashService>();
         _passwordServiceMock = new Mock<IPasswordService>();
 
-        // JWT config 
         var inMemorySettings = new Dictionary<string, string>
         {
             { "Jwt:Key", "super_secret_test_key_1234567890!" },
@@ -51,7 +47,6 @@ public class AuthServiceTest
         );
     }
 
-    // REGISTER TEST
     [Fact]
     public async Task RegisterAsync_NewUser_ShouldCreateUser()
     {
@@ -75,7 +70,6 @@ public class AuthServiceTest
         Assert.Equal("hashed_password", result.PasswordHash);
     }
 
-
     [Fact]
     public async Task RegisterAsync_AdminRoleRequested_ShouldCreateUserWithUserRole()
     {
@@ -98,8 +92,6 @@ public class AuthServiceTest
         Assert.Equal("User", result.Role);
     }
 
-
-    // LOGIN TEST
     [Fact]
     public async Task LoginAsync_ValidCredentials_ShouldReturnTokens()
     {
@@ -134,7 +126,6 @@ public class AuthServiceTest
         Assert.NotEmpty(result.RefreshToken);
     }
 
-    // LOGIN FAIL TEST
     [Fact]
     public async Task LoginAsync_WrongPassword_ShouldReturnNull()
     {
@@ -166,7 +157,6 @@ public class AuthServiceTest
         // Assert
         Assert.Null(result);
     }
-
 
     [Fact]
     public async Task LoginAsync_LegacyPasswordHash_ShouldRehashPassword()
@@ -214,5 +204,4 @@ public class AuthServiceTest
             x => x.HashPassword("123456"),
             Times.Once);
     }
-
 }

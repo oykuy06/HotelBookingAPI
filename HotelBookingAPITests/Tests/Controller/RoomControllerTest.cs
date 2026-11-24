@@ -1,5 +1,4 @@
-﻿
-using HotelBookingAPI.Controllers;
+﻿using HotelBookingAPI.Controllers;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
@@ -8,7 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Security.Claims;
-using Xunit;
 
 public class RoomControllerTest
 {
@@ -43,49 +41,6 @@ public class RoomControllerTest
             {
                 User = principal
             }
-        };
-    }
-
-    private RoomDto CreateRoomDto(long hotelId = 1)
-    {
-        return new RoomDto
-        {
-            Name = "Deluxe Room",
-            HotelId = hotelId,
-            RoomNumber = 101,
-            Capacity = 2,
-            Price = 500,
-            Description = "Test room",
-            Photo = "https://example.com/room.jpg"
-        };
-    }
-
-    private RoomResponseDto CreateRoomResponse(long hotelId = 1)
-    {
-        return new RoomResponseDto
-        {
-            Id = 1,
-            Name = "Deluxe Room",
-            HotelId = hotelId,
-            HotelName = "Test Hotel",
-            RoomNumber = 101,
-            Capacity = 2,
-            Price = 500,
-            Description = "Test room"
-        };
-    }
-
-    private Room CreateRoom(long hotelId = 1)
-    {
-        return new Room
-        {
-            Id = 1,
-            Name = "Deluxe Room",
-            HotelId = hotelId,
-            RoomNumber = 101,
-            Capacity = 2,
-            Price = 500,
-            Description = "Test room"
         };
     }
 
@@ -136,6 +91,33 @@ public class RoomControllerTest
         var value = Assert.IsType<RoomResponseDto>(okResult.Value);
 
         Assert.Equal(1, value.Id);
+    }
+    private RoomDto CreateRoomDto(long hotelId = 1)
+    {
+        return new RoomDto
+        {
+            Name = "Deluxe Room",
+            HotelId = hotelId,
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 500,
+            Description = "Test room",
+            Photo = "https://example.com/room.jpg"
+        };
+    }
+    private RoomResponseDto CreateRoomResponse(long hotelId = 1)
+    {
+        return new RoomResponseDto
+        {
+            Id = 1,
+            Name = "Deluxe Room",
+            HotelId = hotelId,
+            HotelName = "Test Hotel",
+            RoomNumber = 101,
+            Capacity = 2,
+            Price = 500,
+            Description = "Test room"
+        };
     }
 
     [Fact]

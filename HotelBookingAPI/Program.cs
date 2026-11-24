@@ -1,4 +1,4 @@
-using HotelBookingAPI.Entity;
+ï»¿using HotelBookingAPI.Entity;
 using HotelBookingAPI.Middlewares;
 using HotelBookingAPI.Services;
 using HotelBookingAPI.Services.Interfaces;
@@ -63,7 +63,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // “Authorize” butonu için security þemasý
+    // â€œAuthorizeâ€ butonu iÃ§in security ÅŸemasÄ±
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -71,10 +71,10 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "JWT token'ýnýzý buraya girin. (Bearer yazmadan direkt token girilir)"
+        Description = "JWT token'Ä±nÄ±zÄ± buraya girin. (Bearer yazmadan direkt token girilir)"
     });
 
-    // Her endpoint’e otomatik olarak uygula
+    // Her endpointâ€™e otomatik olarak uygula
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {

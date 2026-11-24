@@ -1,13 +1,12 @@
-﻿
-using HotelBookingAPI.Constants;
+﻿using HotelBookingAPI.Constants;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Security.Claims;
-using HotelBookingAPI.Entity;
 
 namespace HotelBookingAPI.Controllers
 {
@@ -32,18 +31,17 @@ namespace HotelBookingAPI.Controllers
             var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
             var isAdmin = User.IsInRole(UserRoles.Admin) || isSuperAdmin;
 
-            // Normal kullanıcı yalnızca kendi bilgilerini görebilir.
+            //Regular users can only view their own information.
             if (!isAdmin && currentUserId != id.ToString())
                 return Forbid();
 
-            // Admin yalnızca kendi otelindeki kullanıcıları görebilir.
+            // Admins can only view users belonging to their own hotel.
             if (isAdmin && !isSuperAdmin)
             {
                 if (!long.TryParse(currentUserId, out var adminUserId))
                     return Forbid();
 
-                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
-                    adminUserId);
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(adminUserId);
 
                 if (!adminHotelId.HasValue)
                     return Forbid();
@@ -73,7 +71,7 @@ namespace HotelBookingAPI.Controllers
         {
             long? hotelId = null;
 
-            // Admin yalnızca kendi otelindeki kullanıcıları görebilir.
+            // Admins can only view users belonging to their own hotel.
             if (User.IsInRole(UserRoles.Admin) &&
                 !User.IsInRole(UserRoles.SuperAdmin))
             {
@@ -112,11 +110,11 @@ namespace HotelBookingAPI.Controllers
             var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
             long? hotelId = dto.HotelId;
 
-            // Yalnızca SuperAdmin Admin oluşturabilir.
+            // Only SuperAdmins can create Admin users.
             if (normalizedRole == UserRoles.Admin && !isSuperAdmin)
                 return Forbid();
 
-            // Admin yalnızca kendi otelinde normal kullanıcı oluşturabilir.
+            // Admins can only create regular users within their own hotel.
             if (!isSuperAdmin)
             {
                 if (normalizedRole != UserRoles.User)
@@ -128,8 +126,7 @@ namespace HotelBookingAPI.Controllers
                 if (!long.TryParse(currentUserId, out var adminUserId))
                     return Forbid();
 
-                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(
-                    adminUserId);
+                var adminHotelId = await _userService.GetHotelIdByUserIdAsync(adminUserId);
 
                 if (!adminHotelId.HasValue)
                     return Forbid();
@@ -173,7 +170,7 @@ namespace HotelBookingAPI.Controllers
             var isSuperAdmin = User.IsInRole(UserRoles.SuperAdmin);
             var isAdmin = User.IsInRole(UserRoles.Admin) || isSuperAdmin;
 
-            // Normal kullanıcı yalnızca kendi hesabını güncelleyebilir.
+            // Regular users can only update their own accounts.
             if (!isAdmin && currentUserId != id.ToString())
                 return Forbid();
 
@@ -191,7 +188,7 @@ namespace HotelBookingAPI.Controllers
                 }
             }
 
-            // Admin yalnızca kendi otelindeki normal kullanıcıları güncelleyebilir.
+            // Admins can only update regular users belonging to their own hotel.
             if (isAdmin && !isSuperAdmin)
             {
                 if (!long.TryParse(currentUserId, out var adminUserId))
@@ -264,7 +261,7 @@ namespace HotelBookingAPI.Controllers
             if (!long.TryParse(currentUserId, out var currentUserIdLong))
                 return Forbid();
 
-            // SuperAdmin kendi hesabını silemez.
+            // SuperAdmins cannot delete their own accounts.
             if (isSuperAdmin && currentUserIdLong == id)
                 return Forbid();
 
@@ -281,14 +278,14 @@ namespace HotelBookingAPI.Controllers
                 if (targetUser == null)
                     return NotFound();
 
-                // Admin, SuperAdmin veya başka Admin hesaplarını silemez.
+                // Admins cannot delete SuperAdmin or other Admin accounts.
                 if (targetUser.Role == UserRoles.SuperAdmin ||
                     targetUser.Role == UserRoles.Admin)
                     return Forbid();
 
                 var targetHotelId = await _userService.GetHotelIdByUserIdAsync(id);
 
-                // Yalnızca kendi otelindeki kullanıcıları silebilir.
+                // Users can only be deleted if they belong to the admin's own hotel.
                 if (targetHotelId != adminHotelId)
                     return Forbid();
             }

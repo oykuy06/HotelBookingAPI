@@ -5,7 +5,6 @@ using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
-using Xunit;
 using Microsoft.Extensions.Logging;
 
 namespace HotelBookingAPI.Tests.Controllers
@@ -26,10 +25,10 @@ namespace HotelBookingAPI.Tests.Controllers
                 _loggerMock.Object);
         }
 
-        [Fact] //not parameter
+        [Fact] 
         public async Task Register_EmailAlreadyExists_ReturnsBadRequest()
         {
-            // arrange
+            // Arrange
             var dto = new RegisterDto
             {
                 Email = "test@test.com",
@@ -40,10 +39,10 @@ namespace HotelBookingAPI.Tests.Controllers
                 .Setup(x => x.RegisterAsync(dto))
                 .ReturnsAsync((User?)null);
 
-            // act
+            // Act
             var result = await _controller.Register(dto);
 
-            // assert
+            // Assert
             Assert.IsType<BadRequestObjectResult>(result);
         }
 
@@ -162,10 +161,13 @@ namespace HotelBookingAPI.Tests.Controllers
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
 
+            var responseObject = okResult.Value;
+            Assert.NotNull(responseObject);
+
             var response = Assert.IsType<string>(
-                okResult.Value.GetType()
+                responseObject.GetType()
                     .GetProperty("message")!
-                    .GetValue(okResult.Value));
+                    .GetValue(responseObject));
 
             Assert.Equal(
                 "If the account exists, a reset link has been sent.",
@@ -221,10 +223,13 @@ namespace HotelBookingAPI.Tests.Controllers
             // Assert
             var okResult = Assert.IsType<OkObjectResult>(result);
 
+            var responseObject = okResult.Value;
+            Assert.NotNull(responseObject);
+
             var response = Assert.IsType<string>(
-                okResult.Value.GetType()
+                responseObject.GetType()
                     .GetProperty("message")!
-                    .GetValue(okResult.Value));
+                    .GetValue(responseObject));
 
             Assert.Equal(
                 "If the account exists, a reset link has been sent.",

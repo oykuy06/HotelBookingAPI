@@ -19,6 +19,6 @@ namespace HotelBookingAPI.Entity.Models
         public long? HotelId { get; set; }
         public Hotel? Hotel { get; set; }
 
-        public List<Reservation> Reservations { get; set; } = new(); //return empty list
+        public List<Reservation> Reservations { get; set; } = new(); 
     }
 }

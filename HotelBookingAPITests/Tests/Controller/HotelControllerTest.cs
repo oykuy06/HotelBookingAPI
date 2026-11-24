@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Reflection;
 using System.Security.Claims;
-using Xunit;
 
 namespace HotelBookingAPI.Tests.Controllers
 {
@@ -33,8 +32,7 @@ namespace HotelBookingAPI.Tests.Controllers
             {
                 HttpContext = new DefaultHttpContext
                 {
-                    User = new ClaimsPrincipal(
-            new ClaimsIdentity())
+                    User = new ClaimsPrincipal(new ClaimsIdentity())
                 }
             };
         }
@@ -210,8 +208,8 @@ namespace HotelBookingAPI.Tests.Controllers
             var identity = new ClaimsIdentity(
                 new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, "9"),
-            new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.NameIdentifier, "9"),
+                    new Claim(ClaimTypes.Role, "Admin")
                 },
                 "TestAuth");
 
@@ -265,8 +263,8 @@ namespace HotelBookingAPI.Tests.Controllers
             var identity = new ClaimsIdentity(
                 new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, "10"),
-            new Claim(ClaimTypes.Role, "SuperAdmin")
+                    new Claim(ClaimTypes.NameIdentifier, "10"),
+                    new Claim(ClaimTypes.Role, "SuperAdmin")
                 },
                 "TestAuth");
 
@@ -323,8 +321,8 @@ namespace HotelBookingAPI.Tests.Controllers
             var identity = new ClaimsIdentity(
                 new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, "9"),
-            new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.NameIdentifier, "9"),
+                    new Claim(ClaimTypes.Role, "Admin")
                 },
                 "TestAuth");
 
@@ -389,8 +387,8 @@ namespace HotelBookingAPI.Tests.Controllers
             var identity = new ClaimsIdentity(
                 new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, "9"),
-            new Claim(ClaimTypes.Role, "Admin")
+                    new Claim(ClaimTypes.NameIdentifier, "9"),
+                    new Claim(ClaimTypes.Role, "Admin")
                 },
                 "TestAuth");
 
@@ -460,8 +458,8 @@ namespace HotelBookingAPI.Tests.Controllers
             var identity = new ClaimsIdentity(
                 new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, "10"),
-            new Claim(ClaimTypes.Role, "SuperAdmin")
+                    new Claim(ClaimTypes.NameIdentifier, "10"),
+                    new Claim(ClaimTypes.Role, "SuperAdmin")
                 },
                 "TestAuth");
 
@@ -575,7 +573,5 @@ namespace HotelBookingAPI.Tests.Controllers
                 s => s.DeleteHotelAsync(1),
                 Times.Once);
         }
-
-
     }
 }

@@ -1,5 +1,4 @@
-﻿using HotelBookingAPI.Dto.RequestDto;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace HotelBookingAPI.Dto.RequestDto
 {
@@ -15,6 +14,7 @@ namespace HotelBookingAPI.Dto.RequestDto
         [Range(1, 10)]
         public int Capacity { get; set; }
         [Required]
+        [Range(0.01, 1000000)]
         public decimal Price { get; set; }
         [StringLength(100)]
         public string Description { get; set; }

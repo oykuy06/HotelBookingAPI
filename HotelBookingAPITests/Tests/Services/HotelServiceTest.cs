@@ -2,7 +2,6 @@
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
 
 namespace HotelBookingAPI.Tests.Services
 {
@@ -20,61 +19,6 @@ namespace HotelBookingAPI.Tests.Services
         private HotelService GetService(HotelBookingDBContext context)
         {
             return new HotelService(context);
-        }
-
-        [Fact]
-        public async Task CreateHotelAsync_ShouldCreateHotel()
-        {
-            // Arrange
-            var context = GetDbContext();
-            var service = GetService(context);
-
-            var hotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Istanbul",
-                Photo = "http://example.com/photo.jpg"
-            };
-
-            // Act
-            var result = await service.CreateHotelAsync(hotel);
-
-            // Assert
-            Assert.NotNull(result);
-            Assert.Equal("Test Hotel", result.Name);
-            Assert.Equal(1, context.Hotels.Count());
-        }
-
-        [Fact]
-        public async Task CreateHotelAsync_DuplicateName_ThrowsException()
-        {
-            var context = GetDbContext();
-
-            context.Hotels.Add(new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Description",
-                Address = "Ankara",
-                Photo = "http://example.com/photo.jpg"
-            });
-
-            await context.SaveChangesAsync();
-
-            var service = GetService(context);
-
-            var duplicateHotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Another description",
-                Address = "Istanbul",
-                Photo = "http://example.com/another.jpg"
-            };
-
-            await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.CreateHotelAsync(duplicateHotel));
-
-            Assert.Single(context.Hotels);
         }
 
         [Fact]
@@ -152,6 +96,61 @@ namespace HotelBookingAPI.Tests.Services
         }
 
         [Fact]
+        public async Task CreateHotelAsync_ShouldCreateHotel()
+        {
+            // Arrange
+            var context = GetDbContext();
+            var service = GetService(context);
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Istanbul",
+                Photo = "http://example.com/photo.jpg"
+            };
+
+            // Act
+            var result = await service.CreateHotelAsync(hotel);
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Equal("Test Hotel", result.Name);
+            Assert.Equal(1, context.Hotels.Count());
+        }
+
+        [Fact]
+        public async Task CreateHotelAsync_DuplicateName_ThrowsException()
+        {
+            var context = GetDbContext();
+
+            context.Hotels.Add(new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Description",
+                Address = "Ankara",
+                Photo = "http://example.com/photo.jpg"
+            });
+
+            await context.SaveChangesAsync();
+
+            var service = GetService(context);
+
+            var duplicateHotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Another description",
+                Address = "Istanbul",
+                Photo = "http://example.com/another.jpg"
+            };
+
+            await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateHotelAsync(duplicateHotel));
+
+            Assert.Single(context.Hotels);
+        }
+
+        [Fact]
         public async Task UpdateHotelAsync_DuplicateName_ThrowsException()
         {
             var context = GetDbContext();
@@ -185,7 +184,7 @@ namespace HotelBookingAPI.Tests.Services
             };
 
             await Assert.ThrowsAsync<InvalidOperationException>(
-    () => service.UpdateHotelAsync(1L, hotelToUpdate));
+                () => service.UpdateHotelAsync(1L, hotelToUpdate));
 
             Assert.Equal("Hotel One", (await context.Hotels.FindAsync(1L))!.Name);
         }
@@ -320,6 +319,5 @@ namespace HotelBookingAPI.Tests.Services
             await Assert.ThrowsAsync<InvalidOperationException>(
                 () => service.DeleteHotelAsync(hotel.Id));
         }
-
     }
 }

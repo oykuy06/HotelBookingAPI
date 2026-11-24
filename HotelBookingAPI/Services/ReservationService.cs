@@ -34,8 +34,6 @@ namespace HotelBookingAPI.Services
                 })
                 .ToListAsync();
         }
-
-
         public async Task<IEnumerable<ReservationResponseDto>> GetReservationsByHotelIdAsync(long hotelId)
         {
             return await _context.Reservations
@@ -56,8 +54,6 @@ namespace HotelBookingAPI.Services
                 })
                 .ToListAsync();
         }
-
-
         public async Task<ReservationResponseDto?> GetReservationByIdAsync(long id)
         {
             return await _context.Reservations
@@ -78,10 +74,7 @@ namespace HotelBookingAPI.Services
                 })
                 .FirstOrDefaultAsync();
         }
-
-        public async Task<Reservation> CreateReservationAsync(
-    Reservation reservation,
-    long? allowedHotelId = null)
+        public async Task<Reservation> CreateReservationAsync(Reservation reservation, long? allowedHotelId = null)
         {
             var userExists = await _context.Users
                 .AnyAsync(u => u.Id == reservation.UserId);
@@ -95,8 +88,7 @@ namespace HotelBookingAPI.Services
             if (room == null)
                 throw new ArgumentException("Room not found");
 
-            if (allowedHotelId.HasValue &&
-    room.HotelId != allowedHotelId.Value)
+            if (allowedHotelId.HasValue && room.HotelId != allowedHotelId.Value)
             {
                 throw new UnauthorizedAccessException(
                     "You cannot create a reservation for another hotel's room.");
@@ -106,8 +98,7 @@ namespace HotelBookingAPI.Services
                 reservation.CheckInDate,
                 reservation.CheckOutDate);
 
-            var numberOfNights =
-                (reservation.CheckOutDate.Date - reservation.CheckInDate.Date).Days;
+            var numberOfNights = (reservation.CheckOutDate.Date - reservation.CheckInDate.Date).Days;
 
             reservation.TotalPrice = room.Price * numberOfNights;
 
@@ -128,11 +119,7 @@ namespace HotelBookingAPI.Services
 
             return reservation;
         }
-
-        public async Task<Reservation?> UpdateReservationAsync(
-            long id,
-            Reservation updatedReservation,
-            long? allowedHotelId = null)
+        public async Task<Reservation?> UpdateReservationAsync(long id, Reservation updatedReservation, long? allowedHotelId = null)
         {
             var existing = await _context.Reservations.FindAsync(id);
 
@@ -180,8 +167,6 @@ namespace HotelBookingAPI.Services
 
             return existing;
         }
-
-
         public async Task<bool> DeleteReservationAsync(long id)
         {
             var reservation = await _context.Reservations.FindAsync(id);
@@ -195,9 +180,7 @@ namespace HotelBookingAPI.Services
 
             return true;
         }
-        private static void ValidateReservationDates(
-            DateTime checkInDate,
-            DateTime checkOutDate)
+        private static void ValidateReservationDates(DateTime checkInDate, DateTime checkOutDate)
         {
             if (checkInDate.Date >= checkOutDate.Date)
                 throw new ArgumentException(

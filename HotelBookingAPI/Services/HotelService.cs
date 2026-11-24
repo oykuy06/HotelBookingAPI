@@ -42,7 +42,6 @@ namespace HotelBookingAPI.Services
                 })
                 .FirstOrDefaultAsync();
         }
-
         public async Task<IEnumerable<HotelResponseDto>> GetAllHotelsAsync()
         {
             return await _context.Hotels
@@ -69,8 +68,6 @@ namespace HotelBookingAPI.Services
                 })
                 .ToListAsync();
         }
-
-
         public async Task<Hotel> CreateHotelAsync(Hotel hotel)
         {
             if (await _context.Hotels.AnyAsync(h => h.Name == hotel.Name))
@@ -80,15 +77,13 @@ namespace HotelBookingAPI.Services
             await _context.SaveChangesAsync();
             return hotel;
         }
-
         public async Task<Hotel?> UpdateHotelAsync(long id, Hotel hotel)
         {
             var existingHotel = await _context.Hotels.FindAsync(id);
             if (existingHotel == null)
                 return null;
 
-            if (await _context.Hotels.AnyAsync(h =>
-    h.Id != id && h.Name == hotel.Name))
+            if (await _context.Hotels.AnyAsync(h => h.Id != id && h.Name == hotel.Name))
             {
                 throw new InvalidOperationException("Hotel name already exists");
             }
@@ -101,11 +96,9 @@ namespace HotelBookingAPI.Services
             await _context.SaveChangesAsync();
             return existingHotel;
         }
-
         public async Task<bool> DeleteHotelAsync(long id)
         {
-            var hotel = await _context.Hotels
-     .FirstOrDefaultAsync(h => h.Id == id);
+            var hotel = await _context.Hotels.FirstOrDefaultAsync(h => h.Id == id);
 
             if (hotel == null)
                 return false;

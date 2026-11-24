@@ -52,7 +52,6 @@ namespace HotelBookingAPI.Services
 
             return user;
         }
-
         public async Task<AuthResponseDto?> LoginAsync(LoginDto dto)
         {
             var email = dto.Email.ToLowerInvariant();
@@ -86,8 +85,6 @@ namespace HotelBookingAPI.Services
                 RefreshToken = refreshToken
             };
         }
-
-
         private string GenerateJwtToken(User user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -102,9 +99,9 @@ namespace HotelBookingAPI.Services
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Role, UserRoles.Normalize(user.Role))
-        }),
+                    new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new Claim(ClaimTypes.Role, UserRoles.Normalize(user.Role))
+                }),
                 Expires = DateTime.UtcNow.AddHours(_configuration.GetValue<int>("Jwt:ExpiresInHours", 2)),
                 Issuer = _configuration["Jwt:Issuer"],
                 Audience = _configuration["Jwt:Audience"],
@@ -133,13 +130,10 @@ namespace HotelBookingAPI.Services
             if (storedToken == null)
                 return null;
 
-            // create new token
             var newAccessToken = GenerateJwtToken(storedToken.User);
 
-            // revoke old token
             storedToken.IsRevoked = true;
 
-            // create new refresh token
             var newRefreshToken = new RefreshToken
             {
                 Token = GenerateRefreshToken(),

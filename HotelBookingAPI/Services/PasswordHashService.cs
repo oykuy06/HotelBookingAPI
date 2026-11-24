@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using System.Security.Cryptography;
 using HotelBookingAPI.Services.Interfaces;
 
@@ -70,7 +69,6 @@ namespace HotelBookingAPI.Services
                 return false;
             }
         }
-
         public bool NeedsRehash(string passwordHash)
         {
             var parts = passwordHash.Split('$');
@@ -83,15 +81,10 @@ namespace HotelBookingAPI.Services
                 return iterations < CurrentIterations;
             }
 
-            // Eski format veya tanınmayan format.
             return true;
         }
 
-        private bool VerifyHash(
-            string password,
-            string saltValue,
-            string storedHashValue,
-            int iterations)
+        private bool VerifyHash(string password, string saltValue, string storedHashValue, int iterations)
         {
             byte[] salt = Convert.FromBase64String(saltValue);
             byte[] storedHash = Convert.FromBase64String(storedHashValue);

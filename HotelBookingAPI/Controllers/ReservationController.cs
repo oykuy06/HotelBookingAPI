@@ -1,5 +1,4 @@
-﻿
-using HotelBookingAPI.Constants;
+﻿using HotelBookingAPI.Constants;
 using HotelBookingAPI.Dto.RequestDto;
 using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
@@ -22,7 +21,6 @@ namespace HotelBookingAPI.Controllers
             _reservationService = reservationService;
             _userService = userService;
         }
-
 
         [HttpGet]
         [Authorize(Roles = UserRoles.Admin + "," + UserRoles.SuperAdmin)]
@@ -50,7 +48,6 @@ namespace HotelBookingAPI.Controllers
 
             return Ok(allReservations);
         }
-
 
         [HttpGet("{id:long}")]
         [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
@@ -83,8 +80,7 @@ namespace HotelBookingAPI.Controllers
 
         [HttpPost]
         [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
-        public async Task<IActionResult> CreateReservation(
-    [FromBody] CreateReservationDto dto)
+        public async Task<IActionResult> CreateReservation([FromBody] CreateReservationDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -93,7 +89,7 @@ namespace HotelBookingAPI.Controllers
 
             long? allowedHotelId = null;
 
-            // Admin yalnızca kendi otelinin odalarına rezervasyon oluşturabilir.
+            // Admin users can only create reservations for rooms in their own hotel.
             if (User.IsInRole(UserRoles.Admin))
             {
                 allowedHotelId =
@@ -143,12 +139,9 @@ namespace HotelBookingAPI.Controllers
                 responseDto);
         }
 
-
         [HttpPut("{id:long}")]
         [Authorize(Roles =  UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]
-        public async Task<IActionResult> UpdateReservation(
-            long id,
-            [FromBody] UpdateReservationDto dto)
+        public async Task<IActionResult> UpdateReservation(long id, [FromBody] UpdateReservationDto dto)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -211,7 +204,6 @@ namespace HotelBookingAPI.Controllers
 
             return Ok(new { message = "Reservation updated successfully" });
         }
-
 
         [HttpDelete("{id:long}")]
         [Authorize(Roles = UserRoles.User + "," + UserRoles.Admin + "," + UserRoles.SuperAdmin)]

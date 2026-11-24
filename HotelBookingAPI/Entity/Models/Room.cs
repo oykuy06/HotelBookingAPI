@@ -17,7 +17,7 @@ namespace HotelBookingAPI.Entity.Models
         [Required]
         public int RoomNumber { get; set; }
         [Required]
-        [Range(1, 5)]
+        [Range(1, 10)]
         public int Capacity { get; set; }
         [Required]
         public decimal Price { get; set; }

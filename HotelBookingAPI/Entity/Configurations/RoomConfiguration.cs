@@ -8,7 +8,6 @@ namespace HotelBookingAPI.Entity.Configurations
     {
         public void Configure(EntityTypeBuilder<Room> builder)
         {
-            // Unique roomNumber
             builder.HasIndex(r => new { r.HotelId, r.RoomNumber })
                    .IsUnique();
 

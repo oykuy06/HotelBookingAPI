@@ -14,7 +14,6 @@ namespace HotelBookingAPI.Services
         {
             _context = context;
         }
-
         public async Task<IEnumerable<RoomResponseDto>> GetAllRoomsAsync()
         {
             return await _context.Rooms
@@ -33,7 +32,6 @@ namespace HotelBookingAPI.Services
                 })
                 .ToListAsync();
         }
-
         public async Task<RoomResponseDto?> GetRoomByIdAsync(long id)
         {
             return await _context.Rooms
@@ -53,7 +51,6 @@ namespace HotelBookingAPI.Services
                 })
                 .FirstOrDefaultAsync();
         }
-
         public async Task<Room> CreateRoomAsync(Room room)
         {
             var hotel = await _context.Hotels
@@ -82,8 +79,6 @@ namespace HotelBookingAPI.Services
 
             return room;
         }
-
-
         public async Task<Room?> UpdateRoomAsync(long id, Room room)
         {
             var existingRoom = await _context.Rooms.FindAsync(id);
@@ -91,10 +86,7 @@ namespace HotelBookingAPI.Services
             if (existingRoom == null)
                 return null;
 
-            if (await _context.Rooms.AnyAsync(r =>
-    r.Id != id &&
-    r.HotelId == existingRoom.HotelId &&
-    r.RoomNumber == room.RoomNumber))
+            if (await _context.Rooms.AnyAsync(r => r.Id != id && r.HotelId == existingRoom.HotelId && r.RoomNumber == room.RoomNumber))
             {
                 throw new InvalidOperationException("Room number already exists in this hotel");
             }
@@ -110,6 +102,7 @@ namespace HotelBookingAPI.Services
             existingRoom.Capacity = room.Capacity;
             existingRoom.Price = room.Price;
             existingRoom.Description = room.Description;
+
             if (!string.IsNullOrWhiteSpace(room.Photo))
             {
                 existingRoom.Photo = room.Photo;
@@ -119,8 +112,6 @@ namespace HotelBookingAPI.Services
 
             return existingRoom;
         }
-
-
         public async Task<bool> DeleteRoomAsync(long id)
         {
             var room = await _context.Rooms

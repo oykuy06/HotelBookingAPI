@@ -1,8 +1,6 @@
-﻿
-using HotelBookingAPI.Services;
+﻿using HotelBookingAPI.Services;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using System.Security.Cryptography;
-using Xunit;
 
 namespace HotelBookingAPI.Tests.Services
 {

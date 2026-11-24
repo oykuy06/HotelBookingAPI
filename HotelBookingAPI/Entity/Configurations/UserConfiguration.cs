@@ -8,7 +8,6 @@ namespace HotelBookingAPI.Entity.Configurations
     {
         public void Configure(EntityTypeBuilder<User> builder)
         {
-            // Unique email
             builder.HasIndex(u => u.Email).IsUnique();
         }
     }

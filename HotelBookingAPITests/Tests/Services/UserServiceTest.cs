@@ -1,15 +1,9 @@
 ﻿using HotelBookingAPI.Constants;
-using HotelBookingAPI.Dto.ResponseDto;
 using HotelBookingAPI.Entity;
 using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services;
 using HotelBookingAPI.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace HotelBookingAPI.Tests.Services
 {
@@ -18,8 +12,8 @@ namespace HotelBookingAPI.Tests.Services
         private HotelBookingDBContext CreateDbContext()
         {
             var options = new DbContextOptionsBuilder<HotelBookingDBContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
-            .Options;
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
 
         return new HotelBookingDBContext(options);
         }
@@ -50,194 +44,45 @@ namespace HotelBookingAPI.Tests.Services
         }
 
         [Fact]
-        public async Task CreateUserAsync_ShouldCreateUser()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-            var service = CreateUserService(context);
-
-            // Act
-            var user = await service.CreateUserAsync(
-                email: "test@mail.com",
-                password: "123456",
-                role: "User"
-            );
-
-            // Assert
-            Assert.NotNull(user);
-            Assert.Equal("test@mail.com", user.Email);
-            Assert.Equal("User", user.Role);
-            Assert.Equal("hashed_123456", user.PasswordHash);
-            Assert.Single(context.Users);
-        }
-
-
-        [Fact]
-        public async Task CreateUserAsync_UserWithValidHotelId_ShouldCreateUser()
+        public async Task GetAllUsersAsync_FiltersByHotelId()
         {
             // Arrange
             using var context = CreateDbContext();
 
-            var hotel = new Hotel
+            var users = new List<User>
             {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Test Address",
-                Photo = "test.jpg"
+                new User
+                {
+                    Email = "user1@test.com",
+                    Username = "user1",
+                    PasswordHash = "hash",
+                    Role = UserRoles.User,
+                    HotelId = 1
+                },
+                new User
+                {
+                    Email = "user2@test.com",
+                    Username = "user2",
+                    PasswordHash = "hash",
+                    Role = UserRoles.User,
+                    HotelId = 2
+                }
             };
 
-            context.Hotels.Add(hotel);
+            context.Users.AddRange(users);
             await context.SaveChangesAsync();
 
             var service = CreateUserService(context);
 
             // Act
-            var user = await service.CreateUserAsync(
-                email: "user@mail.com",
-                password: "123456",
-                role: UserRoles.User,
-                hotelId: hotel.Id
-            );
+            var result = await service.GetAllUsersAsync(1);
 
             // Assert
-            Assert.NotNull(user);
-            Assert.Equal(UserRoles.User, user.Role);
-            Assert.Equal(hotel.Id, user.HotelId);
+            var userList = result.ToList();
+
+            Assert.Single(userList);
+            Assert.Equal("user1@test.com", userList[0].Email);
         }
-
-
-        [Fact]
-        public async Task CreateUserAsync_AdminWithValidHotelId_ShouldCreateAdmin()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-
-            var hotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Test Address",
-                Photo = "test.jpg"
-            };
-
-            context.Hotels.Add(hotel);
-            await context.SaveChangesAsync();
-
-            var service = CreateUserService(context);
-
-            // Act
-            var admin = await service.CreateUserAsync(
-                email: "admin@mail.com",
-                password: "123456",
-                role: UserRoles.Admin,
-                hotelId: hotel.Id
-            );
-
-            // Assert
-            Assert.NotNull(admin);
-            Assert.Equal(UserRoles.Admin, admin.Role);
-            Assert.Equal(hotel.Id, admin.HotelId);
-        }
-
-
-        [Fact]
-        public async Task CreateUserAsync_SuperAdminWithHotelId_ShouldThrowException()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-
-            var hotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Test Address",
-                Photo = "test.jpg"
-            };
-
-            context.Hotels.Add(hotel);
-            await context.SaveChangesAsync();
-
-            var service = CreateUserService(context);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.CreateUserAsync(
-                    email: "superadmin@mail.com",
-                    password: "123456",
-                    role: UserRoles.SuperAdmin,
-                    hotelId: hotel.Id
-                )
-            );
-
-            Assert.Equal(
-                "SuperAdmin cannot be assigned to a hotel.",
-                exception.Message
-            );
-        }
-
-
-        [Fact]
-        public async Task CreateUserAsync_WithInvalidHotelId_ShouldThrowException()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-            var service = CreateUserService(context);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.CreateUserAsync(
-                    email: "user@mail.com",
-                    password: "123456",
-                    role: UserRoles.User,
-                    hotelId: 999
-                )
-            );
-
-            Assert.Equal("Hotel not found.", exception.Message);
-        }
-
-
-
-        [Fact]
-        public async Task CreateUserAsync_SuperAdminWithoutHotelId_ShouldCreateSuperAdmin()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-            var service = CreateUserService(context);
-
-            // Act
-            var superAdmin = await service.CreateUserAsync(
-                email: "superadmin@mail.com",
-                password: "123456",
-                role: UserRoles.SuperAdmin
-            );
-
-            // Assert
-            Assert.NotNull(superAdmin);
-            Assert.Equal(UserRoles.SuperAdmin, superAdmin.Role);
-            Assert.Null(superAdmin.HotelId);
-        }
-
-
-        [Fact]
-        public async Task CreateUserAsync_AdminWithoutHotelId_ShouldThrowException()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-            var service = CreateUserService(context);
-
-            // Act & Assert
-            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
-                () => service.CreateUserAsync(
-                    email: "admin@mail.com",
-                    password: "123456",
-                    role: UserRoles.Admin
-                )
-            );
-
-            Assert.Equal("Admin must be assigned to a hotel.", exception.Message);
-        }
-
 
         [Fact]
         public async Task GetUserByIdAsync_ShouldReturnUser_WhenUserExists()
@@ -312,6 +157,314 @@ namespace HotelBookingAPI.Tests.Services
 
             // Assert
             Assert.Equal(2, users.Count());
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_ShouldCreateUser()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act
+            var user = await service.CreateUserAsync(
+                email: "test@mail.com",
+                password: "123456",
+                role: "User"
+            );
+
+            // Assert
+            Assert.NotNull(user);
+            Assert.Equal("test@mail.com", user.Email);
+            Assert.Equal("User", user.Role);
+            Assert.Equal("hashed_123456", user.PasswordHash);
+            Assert.Single(context.Users);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_UserWithValidHotelId_ShouldCreateUser()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var user = await service.CreateUserAsync(
+                email: "user@mail.com",
+                password: "123456",
+                role: UserRoles.User,
+                hotelId: hotel.Id
+            );
+
+            // Assert
+            Assert.NotNull(user);
+            Assert.Equal(UserRoles.User, user.Role);
+            Assert.Equal(hotel.Id, user.HotelId);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_AdminWithValidHotelId_ShouldCreateAdmin()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var admin = await service.CreateUserAsync(
+                email: "admin@mail.com",
+                password: "123456",
+                role: UserRoles.Admin,
+                hotelId: hotel.Id
+            );
+
+            // Assert
+            Assert.NotNull(admin);
+            Assert.Equal(UserRoles.Admin, admin.Role);
+            Assert.Equal(hotel.Id, admin.HotelId);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_SuperAdminWithHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "superadmin@mail.com",
+                    password: "123456",
+                    role: UserRoles.SuperAdmin,
+                    hotelId: hotel.Id
+                )
+            );
+
+            Assert.Equal(
+                "SuperAdmin cannot be assigned to a hotel.",
+                exception.Message
+            );
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_WithInvalidHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "user@mail.com",
+                    password: "123456",
+                    role: UserRoles.User,
+                    hotelId: 999
+                )
+            );
+
+            Assert.Equal("Hotel not found.", exception.Message);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_SuperAdminWithoutHotelId_ShouldCreateSuperAdmin()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act
+            var superAdmin = await service.CreateUserAsync(
+                email: "superadmin@mail.com",
+                password: "123456",
+                role: UserRoles.SuperAdmin
+            );
+
+            // Assert
+            Assert.NotNull(superAdmin);
+            Assert.Equal(UserRoles.SuperAdmin, superAdmin.Role);
+            Assert.Null(superAdmin.HotelId);
+        }
+
+        [Fact]
+        public async Task CreateUserAsync_AdminWithoutHotelId_ShouldThrowException()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+                () => service.CreateUserAsync(
+                    email: "admin@mail.com",
+                    password: "123456",
+                    role: UserRoles.Admin
+                )
+            );
+
+            Assert.Equal("Admin must be assigned to a hotel.", exception.Message);
+        }
+
+        [Theory]
+        [InlineData("admin")]
+        [InlineData("ADMIN")]
+        [InlineData(" Admin ")]
+        [InlineData("superadmin")]
+        [InlineData("USER")]
+        public async Task CreateUserAsync_ShouldNormalizeRole(string role)
+        {
+            // Arrange
+            // Arrange
+            using var context = CreateDbContext();
+            var service = CreateUserService(context);
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            long? hotelId = UserRoles.Normalize(role) == UserRoles.Admin
+                ? hotel.Id
+                : null;
+
+            // Act
+            var user = await service.CreateUserAsync(
+                email: "test@mail.com",
+                password: "123456",
+                role: role,
+                hotelId: hotelId
+            );
+
+            // Assert
+            var expectedRole = role.Trim().ToLowerInvariant() switch
+            {
+                "admin" => "Admin",
+                "superadmin" => "SuperAdmin",
+                "user" => "User",
+                _ => throw new InvalidOperationException()
+            };
+
+            Assert.Equal(expectedRole, user.Role);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_ShouldNormalizeRole()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var hotel = new Hotel
+            {
+                Name = "Test Hotel",
+                Description = "Test Description",
+                Address = "Test Address",
+                Photo = "test.jpg"
+            };
+
+            context.Hotels.Add(hotel);
+            await context.SaveChangesAsync();
+
+            var user = new User
+            {
+                Email = "old@mail.com",
+                Username = "old",
+                PasswordHash = "hash",
+                Role = "User"
+            };
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var updatedUser = await service.UpdateUserAsync(
+                user.Id,
+                email: "old@mail.com",
+                role: " admin ",
+                hotelId: hotel.Id
+            );
+
+            // Assert
+            Assert.NotNull(updatedUser);
+            Assert.Equal("Admin", updatedUser.Role);
+            Assert.Equal(hotel.Id, updatedUser.HotelId);
+        }
+
+        [Fact]
+        public async Task UpdateUserAsync_WithoutRoleOrHotelId_ShouldPreserveExistingValues()
+        {
+            // Arrange
+            using var context = CreateDbContext();
+
+            var user = new User
+            {
+                Email = "old@mail.com",
+                Username = "old",
+                PasswordHash = "existing-hash",
+                Role = UserRoles.Admin,
+                HotelId = 5
+            };
+
+            context.Users.Add(user);
+            await context.SaveChangesAsync();
+
+            var service = CreateUserService(context);
+
+            // Act
+            var updatedUser = await service.UpdateUserAsync(
+                user.Id,
+                email: "new@mail.com"
+            );
+
+            // Assert
+            Assert.NotNull(updatedUser);
+            Assert.Equal("new@mail.com", updatedUser.Email);
+            Assert.Equal(UserRoles.Admin, updatedUser.Role);
+            Assert.Equal(5, updatedUser.HotelId);
+            Assert.Equal("existing-hash", updatedUser.PasswordHash);
         }
 
         [Fact]
@@ -401,177 +554,5 @@ namespace HotelBookingAPI.Tests.Services
             // Assert
             Assert.False(result);
         }
-
-        [Theory]
-        [InlineData("admin")]
-        [InlineData("ADMIN")]
-        [InlineData(" Admin ")]
-        [InlineData("superadmin")]
-        [InlineData("USER")]
-        public async Task CreateUserAsync_ShouldNormalizeRole(string role)
-        {
-            // Arrange
-            // Arrange
-            using var context = CreateDbContext();
-            var service = CreateUserService(context);
-
-            var hotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Test Address",
-                Photo = "test.jpg"
-            };
-
-            context.Hotels.Add(hotel);
-            await context.SaveChangesAsync();
-
-            long? hotelId = UserRoles.Normalize(role) == UserRoles.Admin
-                ? hotel.Id
-                : null;
-
-            // Act
-            var user = await service.CreateUserAsync(
-    email: "test@mail.com",
-    password: "123456",
-    role: role,
-    hotelId: hotelId
-);
-
-            // Assert
-            var expectedRole = role.Trim().ToLowerInvariant() switch
-            {
-                "admin" => "Admin",
-                "superadmin" => "SuperAdmin",
-                "user" => "User",
-                _ => throw new InvalidOperationException()
-            };
-
-            Assert.Equal(expectedRole, user.Role);
-        }
-
-        [Fact]
-        public async Task UpdateUserAsync_ShouldNormalizeRole()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-
-            var hotel = new Hotel
-            {
-                Name = "Test Hotel",
-                Description = "Test Description",
-                Address = "Test Address",
-                Photo = "test.jpg"
-            };
-
-            context.Hotels.Add(hotel);
-            await context.SaveChangesAsync();
-
-            var user = new User
-            {
-                Email = "old@mail.com",
-                Username = "old",
-                PasswordHash = "hash",
-                Role = "User"
-            };
-
-            context.Users.Add(user);
-            await context.SaveChangesAsync();
-
-            var service = CreateUserService(context);
-
-            // Act
-            var updatedUser = await service.UpdateUserAsync(
-                user.Id,
-                email: "old@mail.com",
-                role: " admin ",
-                hotelId: hotel.Id
-            );
-
-            // Assert
-            Assert.NotNull(updatedUser);
-            Assert.Equal("Admin", updatedUser.Role);
-            Assert.Equal(hotel.Id, updatedUser.HotelId);
-        }
-
-        [Fact]
-        public async Task GetAllUsersAsync_FiltersByHotelId()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-
-            var users = new List<User>
-    {
-        new User
-        {
-            Email = "user1@test.com",
-            Username = "user1",
-            PasswordHash = "hash",
-            Role = UserRoles.User,
-            HotelId = 1
-        },
-        new User
-        {
-            Email = "user2@test.com",
-            Username = "user2",
-            PasswordHash = "hash",
-            Role = UserRoles.User,
-            HotelId = 2
-        }
-    };
-
-            context.Users.AddRange(users);
-            await context.SaveChangesAsync();
-
-            var service = CreateUserService(context);
-
-            // Act
-            var result = await service.GetAllUsersAsync(1);
-
-            // Assert
-            var userList = result.ToList();
-
-            Assert.Single(userList);
-            Assert.Equal("user1@test.com", userList[0].Email);
-        }
-
-
-        [Fact]
-        public async Task UpdateUserAsync_WithoutRoleOrHotelId_ShouldPreserveExistingValues()
-        {
-            // Arrange
-            using var context = CreateDbContext();
-
-            var user = new User
-            {
-                Email = "old@mail.com",
-                Username = "old",
-                PasswordHash = "existing-hash",
-                Role = UserRoles.Admin,
-                HotelId = 5
-            };
-
-            context.Users.Add(user);
-            await context.SaveChangesAsync();
-
-            var service = CreateUserService(context);
-
-            // Act
-            var updatedUser = await service.UpdateUserAsync(
-                user.Id,
-                email: "new@mail.com"
-            );
-
-            // Assert
-            Assert.NotNull(updatedUser);
-            Assert.Equal("new@mail.com", updatedUser.Email);
-            Assert.Equal(UserRoles.Admin, updatedUser.Role);
-            Assert.Equal(5, updatedUser.HotelId);
-            Assert.Equal("existing-hash", updatedUser.PasswordHash);
-        }
-
-
     }
-
-
 }

@@ -19,7 +19,6 @@ namespace HotelBookingAPI.Services
             _context = context;
             _passwordHashService = passwordHashService;
         }
-
         public async Task<UserResponseDto?> GetUserByIdAsync(long id)
         {
             return await _context.Users
@@ -46,7 +45,6 @@ namespace HotelBookingAPI.Services
                 })
                 .FirstOrDefaultAsync();
         }
-
         public async Task<IEnumerable<UserResponseDto>> GetAllUsersAsync(long? hotelId)
         {
             var query = _context.Users
@@ -80,7 +78,6 @@ namespace HotelBookingAPI.Services
                 })
                 .ToListAsync();
         }
-
         public async Task<User> CreateUserAsync(string email, string password, string role = UserRoles.User, long? hotelId = null)
         {
             email = email.Trim().ToLowerInvariant();
@@ -128,13 +125,7 @@ namespace HotelBookingAPI.Services
 
             return user;
         }
-
-        public async Task<User?> UpdateUserAsync(
-    long id,
-    string email,
-    string? password = null,
-    string? role = null,
-    long? hotelId = null)
+        public async Task<User?> UpdateUserAsync(long id, string email, string? password = null, string? role = null, long? hotelId = null)
         {
             var user = await _context.Users.FindAsync(id);
 
@@ -197,7 +188,6 @@ namespace HotelBookingAPI.Services
 
             return user;
         }
-
         public async Task<bool> DeleteUserAsync(long id)
         {
             var user = await _context.Users.FindAsync(id);
@@ -218,7 +208,6 @@ namespace HotelBookingAPI.Services
                 return false;
             }
         }
-
         public async Task<bool> UserExistsAsync(long id)
         {
             return await _context.Users.AnyAsync(u => u.Id == id);

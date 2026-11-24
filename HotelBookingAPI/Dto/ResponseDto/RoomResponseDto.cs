@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace HotelBookingAPI.Dto.ResponseDto
+﻿namespace HotelBookingAPI.Dto.ResponseDto
 {
     public class RoomResponseDto
     {

@@ -8,8 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using System.Security.Claims;
-using Xunit;
-using System.Reflection;
 
 public class ReservationControllerTests
 {
@@ -28,7 +26,6 @@ public class ReservationControllerTests
 
         SetUserContext();
     }
-
     private void SetUserContext(string role = "User", string userId = "10")
     {
         var claims = new List<Claim>
@@ -45,6 +42,380 @@ public class ReservationControllerTests
                     new ClaimsIdentity(claims, "Test"))
             }
         };
+    }
+
+    [Fact]
+    public void GetAllReservations_RequiresAdminOrSuperAdmin()
+    {
+        // Arrange
+        var method = typeof(ReservationController)
+            .GetMethod(nameof(ReservationController.GetAllReservations));
+
+        // Act
+        var authorizeAttribute = method?
+            .GetCustomAttributes(typeof(AuthorizeAttribute), true)
+            .Cast<AuthorizeAttribute>()
+            .FirstOrDefault();
+
+        // Assert
+        Assert.NotNull(authorizeAttribute);
+        Assert.Equal("Admin,SuperAdmin", authorizeAttribute.Roles);
+    }
+
+    [Fact]
+    public async Task GetReservationById_AdminCanAccessOwnHotelReservation()
+    {
+        // Arrange
+        SetUserContext("Admin", "1");
+
+        var reservation = new ReservationResponseDto
+        {
+            Id = 1,
+            UserId = 10,
+            RoomId = 5,
+            HotelId = 100,
+            Status = "Confirmed"
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(100);
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(1))
+            .ReturnsAsync(reservation);
+
+        // Act
+        var result = await _controller.GetReservationById(1);
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetReservationById_AdminWithoutHotel_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext("Admin", "1");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync((long?)null);
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(1))
+            .ReturnsAsync(new ReservationResponseDto
+            {
+                Id = 1,
+                UserId = 10,
+                RoomId = 5,
+                HotelId = 100,
+                Status = "Confirmed"
+            });
+
+        // Act
+        var result = await _controller.GetReservationById(1);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAllReservations_AdminWithoutHotel_ReturnsForbid()
+    {
+        // Arrange
+        SetUserContext("Admin", "1");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync((long?)null);
+
+        _reservationServiceMock
+            .Setup(s => s.GetAllReservationsAsync())
+            .ReturnsAsync(new List<ReservationResponseDto>());
+
+        // Act
+        var result = await _controller.GetAllReservations();
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetReservationById_AdminCannotAccessOtherHotelReservation()
+    {
+        // Arrange
+        SetUserContext("Admin", "1");
+
+        var reservation = new ReservationResponseDto
+        {
+            Id = 2,
+            UserId = 20,
+            RoomId = 5,
+            HotelId = 200,
+            Status = "Confirmed"
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(100);
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(2))
+            .ReturnsAsync(reservation);
+
+        // Act
+        var result = await _controller.GetReservationById(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetReservationById_SuperAdminCanAccessAnyHotelReservation()
+    {
+        // Arrange
+        SetUserContext("SuperAdmin", "1");
+
+        var reservation = new ReservationResponseDto
+        {
+            Id = 3,
+            UserId = 20,
+            RoomId = 5,
+            HotelId = 200,
+            Status = "Confirmed"
+        };
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(3))
+            .ReturnsAsync(reservation);
+
+        // Act
+        var result = await _controller.GetReservationById(3);
+
+        // Assert
+        Assert.IsType<OkObjectResult>(result);
+
+        _userServiceMock.Verify(
+            s => s.GetHotelIdByUserIdAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAllReservations_AdminAccess_ReturnsOk()
+    {
+        // Arrange
+        var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, "1"),
+        new Claim(ClaimTypes.Role, "Admin")
+    };
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(claims, "Test"))
+            }
+        };
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(100);
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationsByHotelIdAsync(100))
+            .ReturnsAsync(new List<ReservationResponseDto>
+            {
+            new ReservationResponseDto
+            {
+                Id = 1,
+                UserId = 10,
+                RoomId = 5,
+                HotelId = 100
+            }
+            });
+
+        // Act
+        var result = await _controller.GetAllReservations();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        _reservationServiceMock.Verify(
+            s => s.GetReservationsByHotelIdAsync(100),
+            Times.Once);
+
+        _reservationServiceMock.Verify(
+            s => s.GetAllReservationsAsync(),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetAllReservations_SuperAdminAccess_ReturnsOk()
+    {
+        // Arrange
+        var claims = new List<Claim>
+    {
+        new Claim(ClaimTypes.NameIdentifier, "1"),
+        new Claim(ClaimTypes.Role, "SuperAdmin")
+    };
+
+        _controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(
+                    new ClaimsIdentity(claims, "Test"))
+            }
+        };
+
+        _reservationServiceMock
+            .Setup(s => s.GetAllReservationsAsync())
+            .ReturnsAsync(new List<ReservationResponseDto>
+            {
+            new ReservationResponseDto
+            {
+                Id = 1,
+                UserId = 10,
+                RoomId = 5
+            }
+            });
+
+        // Act
+        var result = await _controller.GetAllReservations();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        Assert.NotNull(okResult.Value);
+
+        _reservationServiceMock.Verify(
+            s => s.GetAllReservationsAsync(),
+            Times.Once);
+
+        _reservationServiceMock.Verify(
+            s => s.GetReservationsByHotelIdAsync(It.IsAny<long>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task GetReservationById_ReturnsOk_WhenReservationExists()
+    {
+        // Arrange
+        SetUserContext("User", "10");
+        var reservationId = 1;
+
+        var reservation = new ReservationResponseDto
+        {
+            Id = reservationId,
+            UserId = 10,
+            UserName = "oki",
+            RoomId = 5,
+            RoomName = "Deluxe",
+            TotalPrice = 500,
+            Status = "Confirmed"
+        };
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(reservationId))
+            .ReturnsAsync(reservation);
+
+        // Act
+        var result = await _controller.GetReservationById(reservationId);
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var returnedReservation = Assert.IsType<ReservationResponseDto>(okResult.Value);
+
+        Assert.Equal(reservationId, returnedReservation.Id);
+        Assert.Equal("Confirmed", returnedReservation.Status);
+    }
+
+    [Fact]
+    public async Task GetReservationById_ReturnsNotFound_WhenReservationDoesNotExist()
+    {
+        // Arrange
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(It.IsAny<long>()))
+            .ReturnsAsync((ReservationResponseDto?)null);
+
+        // Act
+        var result = await _controller.GetReservationById(99);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task GetReservationById_ReturnsForbid_WhenReservationBelongsToAnotherUser()
+    {
+        // Arrange
+        SetUserContext("User", "10");
+        var reservation = new ReservationResponseDto
+        {
+            Id = 2,
+            UserId = 20,
+            UserName = "anotheruser",
+            RoomId = 5,
+            RoomName = "Deluxe",
+            TotalPrice = 500,
+            Status = "Pending"
+        };
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationByIdAsync(2))
+            .ReturnsAsync(reservation);
+
+        // Act
+        var result = await _controller.GetReservationById(2);
+
+        // Assert
+        Assert.IsType<ForbidResult>(result);
+    }
+
+    [Fact]
+    public async Task GetAllReservations_AdminOnlySeesOwnHotelReservations()
+    {
+        // Arrange
+        SetUserContext("Admin", "1");
+
+        _userServiceMock
+            .Setup(s => s.GetHotelIdByUserIdAsync(1))
+            .ReturnsAsync(100);
+
+        _reservationServiceMock
+            .Setup(s => s.GetReservationsByHotelIdAsync(100))
+            .ReturnsAsync(new List<ReservationResponseDto>
+            {
+            new ReservationResponseDto
+            {
+                Id = 1,
+                HotelId = 100
+            }
+            });
+
+        // Act
+        var result = await _controller.GetAllReservations();
+
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+
+        var reservations =
+            Assert.IsAssignableFrom<IEnumerable<ReservationResponseDto>>(
+                okResult.Value);
+
+        Assert.Single(reservations);
+        Assert.All(reservations, r => Assert.Equal(100, r.HotelId));
+
+        _reservationServiceMock.Verify(
+            s => s.GetReservationsByHotelIdAsync(100),
+            Times.Once);
+
+        _reservationServiceMock.Verify(
+            s => s.GetAllReservationsAsync(),
+            Times.Never);
     }
 
     [Fact]
@@ -78,11 +449,10 @@ public class ReservationControllerTests
             Status = "Pending"
         };
 
-        _reservationServiceMock
-    .Setup(s => s.CreateReservationAsync(
-        It.IsAny<Reservation>(),
-        It.IsAny<long?>()))
-    .ReturnsAsync(createdReservation);
+        _reservationServiceMock.Setup(s => s.CreateReservationAsync(
+            It.IsAny<Reservation>(),
+            It.IsAny<long?>()))
+        .ReturnsAsync(createdReservation);
 
         _reservationServiceMock
             .Setup(s => s.GetReservationByIdAsync(1))
@@ -109,13 +479,11 @@ public class ReservationControllerTests
             s => s.GetHotelIdByUserIdAsync(10),
             Times.Once);
 
-        _reservationServiceMock.Verify(
-    s => s.CreateReservationAsync(
-        It.IsAny<Reservation>(),
-        (long?)100),
-    Times.Once);
-    }
-
+        _reservationServiceMock.Verify( s => s.CreateReservationAsync(
+            It.IsAny<Reservation>(),
+            (long?)100),
+            Times.Once);
+        }
 
     [Fact]
     public async Task CreateReservation_Admin_ReturnsForbid_WhenRoomBelongsToAnotherHotel()
@@ -294,7 +662,6 @@ public class ReservationControllerTests
             Status = "Pending"
         };
 
-        // CreateReservationAsync mock
         _reservationServiceMock
             .Setup(s => s.CreateReservationAsync(
                 It.IsAny<Reservation>(),
@@ -303,7 +670,6 @@ public class ReservationControllerTests
                 capturedReservation = reservation)
             .ReturnsAsync(createdReservation);
 
-        // GetReservationByIdAsync mock
         _reservationServiceMock
             .Setup(s => s.GetReservationByIdAsync(1))
             .ReturnsAsync(new ReservationResponseDto
@@ -331,7 +697,6 @@ public class ReservationControllerTests
         Assert.Equal(5, capturedReservation.RoomId);
         Assert.Equal("Pending", capturedReservation.Status);
         Assert.Equal(0, capturedReservation.TotalPrice);
-
         Assert.Equal(1, response.Id);
         Assert.Equal("testuser", response.UserName);
         Assert.Equal("Room 5", response.RoomName);
@@ -346,7 +711,6 @@ public class ReservationControllerTests
             s => s.GetReservationByIdAsync(1),
             Times.Once);
     }
-
 
     [Fact]
     public async Task CreateReservation_ReturnsBadRequest_WhenCheckInDateIsAfterCheckOutDate()
@@ -381,62 +745,49 @@ public class ReservationControllerTests
     }
 
     [Fact]
-    public void GetAllReservations_RequiresAdminOrSuperAdmin()
+    public async Task CreateReservation_ReturnsBadRequest_WhenServiceThrowsArgumentException()
     {
         // Arrange
-        var method = typeof(ReservationController)
-            .GetMethod(nameof(ReservationController.GetAllReservations));
+        SetUserContext("User", "10");
 
-        // Act
-        var authorizeAttribute = method?
-            .GetCustomAttributes(typeof(AuthorizeAttribute), true)
-            .Cast<AuthorizeAttribute>()
-            .FirstOrDefault();
-
-        // Assert
-        Assert.NotNull(authorizeAttribute);
-        Assert.Equal("Admin,SuperAdmin", authorizeAttribute.Roles);
-    }
-
-    [Fact]
-    public async Task GetReservationById_AdminCanAccessOwnHotelReservation()
-    {
-        // Arrange
-        SetUserContext("Admin", "1");
-
-        var reservation = new ReservationResponseDto
+        var dto = new CreateReservationDto
         {
-            Id = 1,
-            UserId = 10,
-            RoomId = 5,
-            HotelId = 100,
-            Status = "Confirmed"
+            RoomId = 999,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(10)
         };
 
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync(100);
-
         _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(1))
-            .ReturnsAsync(reservation);
+            .Setup(s => s.CreateReservationAsync(
+                It.IsAny<Reservation>(),
+                It.IsAny<long?>()))
+            .ThrowsAsync(new ArgumentException("Room not found"));
 
         // Act
-        var result = await _controller.GetReservationById(1);
+        var result = await _controller.CreateReservation(dto);
 
         // Assert
-        Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result);
+
+        _reservationServiceMock.Verify(
+            s => s.CreateReservationAsync(
+                It.IsAny<Reservation>(),
+                (long?)null),
+            Times.Once);
     }
 
     [Fact]
-    public async Task GetReservationById_AdminWithoutHotel_ReturnsForbid()
+    public async Task UpdateReservation_ReturnsBadRequest_WhenServiceThrowsArgumentException()
     {
         // Arrange
-        SetUserContext("Admin", "1");
+        SetUserContext("User", "10");
 
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync((long?)null);
+        var dto = new UpdateReservationDto
+        {
+            RoomId = 999,
+            CheckInDate = DateTime.Today.AddDays(5),
+            CheckOutDate = DateTime.Today.AddDays(10)
+        };
 
         _reservationServiceMock
             .Setup(s => s.GetReservationByIdAsync(1))
@@ -444,99 +795,22 @@ public class ReservationControllerTests
             {
                 Id = 1,
                 UserId = 10,
-                RoomId = 5,
-                HotelId = 100,
-                Status = "Confirmed"
+                RoomId = 5
             });
 
-        // Act
-        var result = await _controller.GetReservationById(1);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-    }
-
-    [Fact]
-    public async Task GetAllReservations_AdminWithoutHotel_ReturnsForbid()
-    {
-        // Arrange
-        SetUserContext("Admin", "1");
-
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync((long?)null);
-
         _reservationServiceMock
-            .Setup(s => s.GetAllReservationsAsync())
-            .ReturnsAsync(new List<ReservationResponseDto>());
+            .Setup(s => s.UpdateReservationAsync(
+                1,
+                It.IsAny<Reservation>(),
+                null))
+            .ThrowsAsync(new ArgumentException("Room not found"));
 
         // Act
-        var result = await _controller.GetAllReservations();
+        var result = await _controller.UpdateReservation(1, dto);
 
         // Assert
-        Assert.IsType<ForbidResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result);
     }
-
-    [Fact]
-    public async Task GetReservationById_AdminCannotAccessOtherHotelReservation()
-    {
-        // Arrange
-        SetUserContext("Admin", "1");
-
-        var reservation = new ReservationResponseDto
-        {
-            Id = 2,
-            UserId = 20,
-            RoomId = 5,
-            HotelId = 200,
-            Status = "Confirmed"
-        };
-
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync(100);
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(2))
-            .ReturnsAsync(reservation);
-
-        // Act
-        var result = await _controller.GetReservationById(2);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-    }
-
-    [Fact]
-    public async Task GetReservationById_SuperAdminCanAccessAnyHotelReservation()
-    {
-        // Arrange
-        SetUserContext("SuperAdmin", "1");
-
-        var reservation = new ReservationResponseDto
-        {
-            Id = 3,
-            UserId = 20,
-            RoomId = 5,
-            HotelId = 200,
-            Status = "Confirmed"
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(3))
-            .ReturnsAsync(reservation);
-
-        // Act
-        var result = await _controller.GetReservationById(3);
-
-        // Assert
-        Assert.IsType<OkObjectResult>(result);
-
-        _userServiceMock.Verify(
-            s => s.GetHotelIdByUserIdAsync(It.IsAny<long>()),
-            Times.Never);
-    }
-
 
     [Fact]
     public async Task UpdateReservation_AdminCanUpdateOwnHotelReservation()
@@ -589,8 +863,6 @@ public class ReservationControllerTests
             Times.Once);
     }
 
-
-
     [Fact]
     public async Task UpdateReservation_AdminCannotUpdateOtherHotelReservation()
     {
@@ -631,8 +903,6 @@ public class ReservationControllerTests
                 It.IsAny<long?>()),
             Times.Never);
     }
-
-
 
     [Fact]
     public async Task UpdateReservation_SuperAdminCanUpdateAnyHotelReservation()
@@ -681,231 +951,6 @@ public class ReservationControllerTests
                 null),
             Times.Once);
     }
-
-
-
-    [Fact]
-    public async Task GetAllReservations_AdminAccess_ReturnsOk()
-    {
-        // Arrange
-        var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, "1"),
-        new Claim(ClaimTypes.Role, "Admin")
-    };
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(
-                    new ClaimsIdentity(claims, "Test"))
-            }
-        };
-
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync(100);
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationsByHotelIdAsync(100))
-            .ReturnsAsync(new List<ReservationResponseDto>
-            {
-            new ReservationResponseDto
-            {
-                Id = 1,
-                UserId = 10,
-                RoomId = 5,
-                HotelId = 100
-            }
-            });
-
-        // Act
-        var result = await _controller.GetAllReservations();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
-
-        _reservationServiceMock.Verify(
-            s => s.GetReservationsByHotelIdAsync(100),
-            Times.Once);
-
-        _reservationServiceMock.Verify(
-            s => s.GetAllReservationsAsync(),
-            Times.Never);
-    }
-
-
-
-    [Fact]
-    public async Task GetAllReservations_SuperAdminAccess_ReturnsOk()
-    {
-        // Arrange
-        var claims = new List<Claim>
-    {
-        new Claim(ClaimTypes.NameIdentifier, "1"),
-        new Claim(ClaimTypes.Role, "SuperAdmin")
-    };
-
-        _controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(
-                    new ClaimsIdentity(claims, "Test"))
-            }
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.GetAllReservationsAsync())
-            .ReturnsAsync(new List<ReservationResponseDto>
-            {
-            new ReservationResponseDto
-            {
-                Id = 1,
-                UserId = 10,
-                RoomId = 5
-            }
-            });
-
-        // Act
-        var result = await _controller.GetAllReservations();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        Assert.NotNull(okResult.Value);
-
-        _reservationServiceMock.Verify(
-            s => s.GetAllReservationsAsync(),
-            Times.Once);
-
-        _reservationServiceMock.Verify(
-            s => s.GetReservationsByHotelIdAsync(It.IsAny<long>()),
-            Times.Never);
-    }
-
-
-    [Fact]
-    public async Task GetReservationById_ReturnsOk_WhenReservationExists()
-    {
-        // Arrange
-        SetUserContext("User", "10");
-        var reservationId = 1;
-
-        var reservation = new ReservationResponseDto
-        {
-            Id = reservationId,
-            UserId = 10,
-            UserName = "oki",
-            RoomId = 5,
-            RoomName = "Deluxe",
-            TotalPrice = 500,
-            Status = "Confirmed"
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(reservationId))
-            .ReturnsAsync(reservation);
-
-        // Act
-        var result = await _controller.GetReservationById(reservationId);
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var returnedReservation = Assert.IsType<ReservationResponseDto>(okResult.Value);
-
-        Assert.Equal(reservationId, returnedReservation.Id);
-        Assert.Equal("Confirmed", returnedReservation.Status);
-    }
-
-    [Fact]
-    public async Task GetReservationById_ReturnsNotFound_WhenReservationDoesNotExist()
-    {
-        // Arrange
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(It.IsAny<long>()))
-            .ReturnsAsync((ReservationResponseDto?)null);
-
-        // Act
-        var result = await _controller.GetReservationById(99);
-
-        // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
-    }
-
-    [Fact]
-    public async Task GetReservationById_ReturnsForbid_WhenReservationBelongsToAnotherUser()
-    {
-        // Arrange
-        SetUserContext("User", "10");
-        var reservation = new ReservationResponseDto
-        {
-            Id = 2,
-            UserId = 20,
-            UserName = "anotheruser",
-            RoomId = 5,
-            RoomName = "Deluxe",
-            TotalPrice = 500,
-            Status = "Pending"
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(2))
-            .ReturnsAsync(reservation);
-
-        // Act
-        var result = await _controller.GetReservationById(2);
-
-        // Assert
-        Assert.IsType<ForbidResult>(result);
-    }
-
-
-    [Fact]
-    public async Task GetAllReservations_AdminOnlySeesOwnHotelReservations()
-    {
-        // Arrange
-        SetUserContext("Admin", "1");
-
-        _userServiceMock
-            .Setup(s => s.GetHotelIdByUserIdAsync(1))
-            .ReturnsAsync(100);
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationsByHotelIdAsync(100))
-            .ReturnsAsync(new List<ReservationResponseDto>
-            {
-            new ReservationResponseDto
-            {
-                Id = 1,
-                HotelId = 100
-            }
-            });
-
-        // Act
-        var result = await _controller.GetAllReservations();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-
-        var reservations =
-            Assert.IsAssignableFrom<IEnumerable<ReservationResponseDto>>(
-                okResult.Value);
-
-        Assert.Single(reservations);
-        Assert.All(reservations, r => Assert.Equal(100, r.HotelId));
-
-        _reservationServiceMock.Verify(
-            s => s.GetReservationsByHotelIdAsync(100),
-            Times.Once);
-
-        _reservationServiceMock.Verify(
-            s => s.GetAllReservationsAsync(),
-            Times.Never);
-    }
-
-
 
     [Fact]
     public async Task UpdateReservation_UserUpdatesOwnReservation_ReturnsOk()
@@ -964,8 +1009,6 @@ public class ReservationControllerTests
             Times.Once);
     }
 
-
-
     [Fact]
     public async Task UpdateReservation_UserUpdatesOtherUsersReservation_ReturnsForbid()
     {
@@ -1003,8 +1046,6 @@ public class ReservationControllerTests
                 It.IsAny<long?>()),
             Times.Never);
     }
-
-
 
     [Fact]
     public async Task UpdateReservation_InvalidDates_ReturnsBadRequest()
@@ -1104,7 +1145,6 @@ public class ReservationControllerTests
             Times.Once);
     }
 
-
     [Fact]
     public async Task DeleteReservation_ReturnsOk_WhenDeleted()
     {
@@ -1139,7 +1179,6 @@ public class ReservationControllerTests
         Assert.Equal("Reservation cancelled successfully", message);
     }
 
-
     [Fact]
     public async Task DeleteReservation_ReturnsNotFound_WhenNotExists()
     {
@@ -1160,7 +1199,6 @@ public class ReservationControllerTests
             s => s.DeleteReservationAsync(It.IsAny<long>()),
             Times.Never);
     }
-
 
     [Fact]
     public async Task DeleteReservation_AdminDeletesOwnHotelReservation_ReturnsOk()
@@ -1197,7 +1235,6 @@ public class ReservationControllerTests
             Times.Once);
     }
 
-
     [Fact]
     public async Task DeleteReservation_AdminDeletesOtherHotelReservation_ReturnsForbid()
     {
@@ -1228,7 +1265,6 @@ public class ReservationControllerTests
             s => s.DeleteReservationAsync(It.IsAny<long>()),
             Times.Never);
     }
-
 
     [Fact]
     public async Task DeleteReservation_SuperAdminDeletesAnyHotelReservation_ReturnsOk()
@@ -1265,7 +1301,6 @@ public class ReservationControllerTests
             Times.Once);
     }
 
-
     [Fact]
     public async Task DeleteReservation_AdminWithoutHotel_ReturnsForbid()
     {
@@ -1297,7 +1332,6 @@ public class ReservationControllerTests
             Times.Never);
     }
 
-
     [Fact]
     public async Task DeleteReservation_UserDeletesOtherUsersReservation_ReturnsForbid()
     {
@@ -1324,76 +1358,6 @@ public class ReservationControllerTests
             s.DeleteReservationAsync(It.IsAny<long>()),
             Times.Never);
     }
-
-    [Fact]
-    public async Task CreateReservation_ReturnsBadRequest_WhenServiceThrowsArgumentException()
-    {
-        // Arrange
-        SetUserContext("User", "10");
-
-        var dto = new CreateReservationDto
-        {
-            RoomId = 999,
-            CheckInDate = DateTime.Today.AddDays(5),
-            CheckOutDate = DateTime.Today.AddDays(10)
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.CreateReservationAsync(
-                It.IsAny<Reservation>(),
-                It.IsAny<long?>()))
-            .ThrowsAsync(new ArgumentException("Room not found"));
-
-        // Act
-        var result = await _controller.CreateReservation(dto);
-
-        // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
-
-        _reservationServiceMock.Verify(
-            s => s.CreateReservationAsync(
-                It.IsAny<Reservation>(),
-                (long?)null),
-            Times.Once);
-    }
-
-
-    [Fact]
-    public async Task UpdateReservation_ReturnsBadRequest_WhenServiceThrowsArgumentException()
-    {
-        // Arrange
-        SetUserContext("User", "10");
-
-        var dto = new UpdateReservationDto
-        {
-            RoomId = 999,
-            CheckInDate = DateTime.Today.AddDays(5),
-            CheckOutDate = DateTime.Today.AddDays(10)
-        };
-
-        _reservationServiceMock
-            .Setup(s => s.GetReservationByIdAsync(1))
-            .ReturnsAsync(new ReservationResponseDto
-            {
-                Id = 1,
-                UserId = 10,
-                RoomId = 5
-            });
-
-        _reservationServiceMock
-            .Setup(s => s.UpdateReservationAsync(
-                1,
-                It.IsAny<Reservation>(),
-                null))
-            .ThrowsAsync(new ArgumentException("Room not found"));
-
-        // Act
-        var result = await _controller.UpdateReservation(1, dto);
-
-        // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
-    }
-
 
     [Fact]
     public async Task DeleteReservation_AdminCanCancelOwnHotelReservation()
