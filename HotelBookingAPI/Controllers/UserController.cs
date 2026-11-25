@@ -5,7 +5,6 @@ using HotelBookingAPI.Entity.Models;
 using HotelBookingAPI.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using System.Security.Claims;
 
 namespace HotelBookingAPI.Controllers

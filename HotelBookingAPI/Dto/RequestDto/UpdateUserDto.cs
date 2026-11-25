@@ -7,7 +7,7 @@ namespace HotelBookingAPI.Dto.RequestDto
         [Required]
         [EmailAddress]
         [StringLength(50)]
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [StringLength(100, MinimumLength = 6)]
         public string? Password { get; set; }
