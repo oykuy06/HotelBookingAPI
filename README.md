@@ -1,74 +1,98 @@
-# HotelBookingAPI
+# Hotel Booking API
 
-A hotel reservation management REST API built with ASP.NET Core 8, Entity Framework Core and SQL Server. The API provides authentication, role-based authorization, hotel and room management, reservation operations and password recovery.
+A RESTful hotel booking API built with **ASP.NET Core 8**, **Entity Framework Core**, and **SQL Server**. The project provides user authentication, role-based authorization, hotel and room management, and reservation operations.
 
 ## Features
 
-- JWT-based authentication and role-based authorization
-- User registration, login and profile management
-- Hotel and room management
-- Reservation management
-- Refresh token support
-- Password recovery via email
-- Password hashing with BCrypt
-- DTO-based request and response handling
-- Entity Framework Core code-first migrations
-- Unit testing with xUnit and Moq
+- **Authentication & Authorization**
+  - JWT-based authentication.
+  - Refresh token management and renewal.
+  - Role-based access control (`User`, `Admin`, `SuperAdmin`).
+  - Password hashing using PBKDF2 with HMAC-SHA256.
+  - Password reset functionality.
+
+- **Hotel & Room Management**
+  - Hotel and room CRUD operations.
+  - Hotel-based access restrictions for administrators.
+  - Room capacity and price validation.
+  - Duplicate hotel and room validation.
+
+- **Reservation Management**
+  - Create and manage reservations.
+  - Check-in and check-out date validation.
+  - Room availability and reservation conflict checks.
+  - Automatic reservation price calculation.
+  - New reservations are created with a `Pending` status. An automated reservation approval workflow is not implemented.
+
+- **Additional Features**
+  - Centralized exception handling middleware.
+  - Request validation using Data Annotations.
+  - Email notifications through MailKit.
+  - Entity Framework Core relationships and configurations.
+  - Swagger / OpenAPI documentation.
 
 ## Tech Stack
 
-- C#
-- ASP.NET Core 8
-- Entity Framework Core 8
-- SQL Server
-- JWT
-- BCrypt
-- MailKit
-- Swagger / OpenAPI
-- xUnit
-- Moq
-- GitHub Actions
+| Category | Technologies |
+|---|---|
+| Backend | C#, ASP.NET Core 8 |
+| ORM | Entity Framework Core 8 |
+| Database | Microsoft SQL Server |
+| Authentication | JWT, Refresh Tokens |
+| Security | PBKDF2, HMAC-SHA256 |
+| Email | MailKit |
+| API Documentation | Swagger / OpenAPI |
+| Testing | xUnit, Moq, EF Core InMemory |
+| CI | GitHub Actions |
+
+## Architecture
+
+The project follows a layered structure to separate API endpoints, business logic, and data access.
+
+- **Controllers:** Handle HTTP requests and responses.
+- **Services:** Contain application and business logic.
+- **Entity:** Contains domain models and Entity Framework Core configurations.
+- **DTOs:** Separate request and response models from database entities.
+- **Middlewares:** Handle cross-cutting concerns such as unhandled exceptions.
+- **Tests:** Contain unit tests for application behavior.
+
+## Role-Based Access Control
+
+The API supports three user roles:
+
+| Role | Permissions |
+|---|---|
+| User | Access personal information and perform permitted reservation operations. |
+| Admin | Manage resources and users within their assigned hotel, subject to authorization rules. |
+| SuperAdmin | Perform administrative operations across hotels, including role and hotel assignments. |
+
+Authorization rules are enforced at the API level to prevent users and administrators from accessing resources outside their permissions.
 
 ## Project Structure
 
-The project follows a layered structure to separate API endpoints, business logic, data access and models.
-
-- **Controllers:** Handle HTTP requests and responses.
-- **Services:** Contain business logic.
-- **Entities:** Represent database models.
-- **DTOs:** Handle API request and response data.
-- **Tests:** Contain unit tests for controllers and services.
-
-## Roles & Authorization
-
-The API uses role-based authorization with three roles:
-
-| Role | Description |
-|---|---|
-| `User` | User-level operations and reservation-related functionality. |
-| `Admin` | Hotel-related administrative operations. |
-| `SuperAdmin` | Higher-level administrative operations, including user and hotel management. |
-
-Authentication is handled using JWT tokens, with refresh tokens for renewing authentication sessions.
-
-## Reservation Workflow
-
-New reservations are created with a `Pending` status. An automated reservation approval workflow is not included in the current implementation.
-
-## Unit Tests
-
-The project includes unit tests for controller and service behavior using xUnit and Moq.
-
-**Latest verified test results:**
-
-- 197 passed
-- 0 failed
-- 0 skipped
-
-Run tests with:
-
-```bash
-dotnet test
+```text
+HotelBookingAPI/
+│
+├── HotelBookingAPI.sln
+│
+├── HotelBookingAPI/
+│   ├── Controllers/
+│   ├── Dto/
+│   ├── Entity/
+│   │   ├── Configurations/
+│   │   └── Models/
+│   ├── Middlewares/
+│   ├── Services/
+│   │   └── Interfaces/
+│   ├── Migrations/
+│   ├── Properties/
+│   ├── appsettings.json
+│   └── Program.cs
+│
+├── HotelBookingAPITests/
+│   └── Tests/
+│
+└── README.md
 ```
 
 ## Getting Started
@@ -76,65 +100,72 @@ dotnet test
 ### Prerequisites
 
 - .NET 8 SDK
-- SQL Server
-- Visual Studio 2022 or a compatible IDE
+- Microsoft SQL Server
+- Visual Studio 2022 or another .NET-compatible IDE
+- Entity Framework Core CLI
 
-### 1. Clone the repository
+Install the EF Core CLI if it is not already installed:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/oykuy06/HotelBookingAPI.git
 cd HotelBookingAPI
 ```
 
-### 2. Navigate to the API project
+### 2. Restore Dependencies
 
-The API `.csproj` file is located in the inner `HotelBookingAPI` directory.
+Run this command from the solution directory:
 
 ```bash
-cd HotelBookingAPI
+dotnet restore
 ```
 
-### 3. Configure application secrets
+### 3. Configure User Secrets
 
-Initialize User Secrets:
+The application uses .NET User Secrets for sensitive configuration values instead of storing credentials in `appsettings.json`.
+
+Navigate to the API project directory:
 
 ```bash
-dotnet user-secrets init
+cd HotelBookingAPI/HotelBookingAPI
 ```
 
-Configure the following settings:
+Configure the following required values:
 
-- `ConnectionStrings:DefaultConnection`
-- `Jwt:Key` (at least 32 characters)
-- `Smtp:Host`
-- `Smtp:Port`
-- `Smtp:Username`
-- `Smtp:Password`
-- `Smtp:SenderEmail`
+| Configuration Key | Description |
+|---|---|
+| `ConnectionStrings:DefaultConnection` | SQL Server connection string |
+| `Jwt:Key` | JWT signing key (at least 32 characters) |
+| `Smtp:Host` | SMTP server address |
+| `Smtp:Port` | SMTP server port |
+| `Smtp:Username` | SMTP username |
+| `Smtp:Password` | SMTP password |
+| `Smtp:SenderEmail` | Sender email address |
 
-Example configuration commands:
+Example commands:
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=localhost;Database=HotelBookingDB;Trusted_Connection=True;TrustServerCertificate=True;"
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Server=YOUR_SERVER;Database=HotelBookingDB;Trusted_Connection=True;TrustServerCertificate=True;"
 
-dotnet user-secrets set "Jwt:Key" "YOUR_SECRET_KEY_AT_LEAST_32_CHARACTERS"
+dotnet user-secrets set "Jwt:Key" "YOUR_RANDOM_SECRET_KEY_AT_LEAST_32_CHARACTERS"
 
 dotnet user-secrets set "Smtp:Host" "YOUR_SMTP_HOST"
-dotnet user-secrets set "Smtp:Port" "YOUR_SMTP_PORT"
+dotnet user-secrets set "Smtp:Port" "587"
 dotnet user-secrets set "Smtp:Username" "YOUR_SMTP_USERNAME"
 dotnet user-secrets set "Smtp:Password" "YOUR_SMTP_PASSWORD"
 dotnet user-secrets set "Smtp:SenderEmail" "YOUR_SENDER_EMAIL"
 ```
 
-Replace the example and placeholder values with your own configuration. Do not commit credentials or secrets to the repository.
+Replace the example values with your own configuration.
 
-### 4. Install Entity Framework Core CLI (if not installed)
+**Security Note:** Never commit real connection strings, JWT signing keys, SMTP credentials, or other sensitive information to source control. Use User Secrets for local development and environment variables or a secure secret manager in production.
 
-```bash
-dotnet tool install --global dotnet-ef
-```
-
-### 5. Apply database migrations
+### 4. Apply Database Migrations
 
 From the API project directory:
 
@@ -142,30 +173,31 @@ From the API project directory:
 dotnet ef database update
 ```
 
-This applies the existing migrations to the configured SQL Server database.
+This creates or updates the database according to the existing Entity Framework Core migrations.
 
-### 6. Run the application
+### 5. Run the Application
 
 ```bash
 dotnet run
 ```
 
-Swagger is available in the Development environment:
+When running in the Development environment, Swagger UI is available at:
 
 ```text
-https://localhost:xxxx/swagger
+https://localhost:<port>/swagger
 ```
 
-Replace `xxxx` with the port configured in your local launch settings.
+Use the HTTPS URL and port displayed in your application's startup output.
 
 ## Initial SuperAdmin Setup
 
-The registration endpoint creates a user with the default `User` role. To create the first SuperAdmin:
+Newly registered users do not automatically receive the `SuperAdmin` role.
 
-1. Register a user through the registration endpoint.
-2. Update the user's role directly in the database.
+To create the initial SuperAdmin account:
 
-Example SQL:
+1. Register a user through the API.
+2. Open the application's SQL Server database.
+3. Update the registered user's role:
 
 ```sql
 UPDATE Users
@@ -173,24 +205,38 @@ SET Role = 'SuperAdmin'
 WHERE Email = 'your-email@example.com';
 ```
 
-Replace the email with the email address of the registered account.
+Replace the email with the registered account's email address.
 
-## Configuration
+After this update, the account can perform SuperAdmin operations.
 
-The application requires the following configuration values:
+## Running Tests
 
-| Key | Description |
-|---|---|
-| `ConnectionStrings:DefaultConnection` | SQL Server connection string |
-| `Jwt:Key` | JWT signing key (at least 32 characters) |
-| `Smtp:Host` | SMTP server host |
-| `Smtp:Port` | SMTP server port |
-| `Smtp:Username` | SMTP username |
-| `Smtp:Password` | SMTP password |
-| `Smtp:SenderEmail` | Sender email address |
+The project uses **xUnit** and **Moq** for testing, with EF Core InMemory where applicable.
 
-Sensitive configuration values should be stored using User Secrets or environment variables and must not be committed to source control.
+Run the tests from the solution directory:
+
+```bash
+dotnet test
+```
+
+### Test Results
+
+- **197 Passed**
+- **0 Failed**
+- **0 Skipped**
+
+Tests cover authentication, authorization, service behavior, password hashing, and other application scenarios.
+
+## Continuous Integration
+
+The project uses **GitHub Actions** to automatically restore dependencies, build the solution, and run tests when changes are pushed to the `main` branch or a pull request targets `main`.
+
+[![CI](https://github.com/oykuy06/HotelBookingAPI/workflows/CI/badge.svg)](https://github.com/oykuy06/HotelBookingAPI/actions)
+
+The workflow verifies that the solution builds successfully and that the automated tests pass.
 
 ---
 
-Developed as a backend portfolio project to demonstrate REST API development, authentication, authorization, database operations and unit testing using the .NET ecosystem.
+## License
+
+This project is available for educational and portfolio purposes. No specific open-source license has been assigned.
